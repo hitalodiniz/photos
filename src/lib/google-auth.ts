@@ -1,18 +1,29 @@
 // lib/google-auth.ts
-import { createSupabaseClientForCache } from './supabase.server';
+import {
+  createSupabaseAdmin,
+  createSupabaseServerClient,
+} from './supabase.server';
 import { addSecondsToSaoPauloIso } from '@/core/utils/date-time';
+
+export type GetDriveAccessTokenOptions = {
+  /** Service role: leitura/atualização do perfil de outro userId (persona, cron, cache público). */
+  useServiceRole?: boolean;
+};
 
 /**
  * Gera um access token válido para o Google Drive
  * usando o refresh_token salvo na tb_profiles.
- * Quando o access token em cache expirou, renova com o refresh_token.
- * Em erro de renovação não limpamos o refresh_token (só o access token expira).
+ * Por padrão usa a sessão do servidor (cookies) para respeitar RLS no próprio perfil.
+ * useServiceRole: true quando não há sessão do dono (cron, listagem por galeria, admin persona).
  */
 export async function getDriveAccessTokenForUser(
   userId: string,
+  options?: GetDriveAccessTokenOptions,
 ): Promise<string | null> {
   try {
-    const supabase = await createSupabaseClientForCache();
+    const supabase = options?.useServiceRole
+      ? createSupabaseAdmin()
+      : await createSupabaseServerClient();
 
     // 1. Buscar o refresh_token do usuário (incluindo status de autenticação)
     const { data: profile, error } = await supabase

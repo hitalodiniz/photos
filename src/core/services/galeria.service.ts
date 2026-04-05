@@ -42,7 +42,9 @@ import {
   createSupabaseClientForCache,
   createSupabaseServerClientReadOnly,
   createSupabaseAdmin,
+  createSupabaseServerOrPersonaAdmin,
 } from '@/lib/supabase.server';
+import { shouldUseServiceRoleForPersona } from '@/lib/supabase.persona';
 import { PlanKey, PERMISSIONS_BY_PLAN } from '../config/plans';
 import { syncUserGalleriesAction } from '@/actions/galeria.actions';
 import {
@@ -411,10 +413,18 @@ export async function getGalerias(
   }
 
   let effectiveUserId = userId;
+  let useServiceRoleForPersonaCache = false;
   if (options?.impersonateUserId) {
     const { profile } = await getAuthenticatedUser();
-    if (profile?.roles?.includes('admin')) {
+    const actorIsAdmin = profile?.roles?.includes('admin') === true;
+    if (
+      shouldUseServiceRoleForPersona({
+        impersonateUserId: options.impersonateUserId,
+        actorIsAdmin,
+      })
+    ) {
       effectiveUserId = options.impersonateUserId;
+      useServiceRoleForPersonaCache = true;
     }
   }
 
@@ -422,8 +432,9 @@ export async function getGalerias(
   return unstable_cache(
     async (cachedUserId: string) => {
       try {
-        // 🎯 USA createSupabaseClientForCache (sem cookies) dentro do cache
-        const supabase = await createSupabaseClientForCache();
+        const supabase = useServiceRoleForPersonaCache
+          ? createSupabaseAdmin()
+          : await createSupabaseClientForCache();
 
         // 🎯 USA SELECT '*' PARA EVITAR ERROS DE JOIN
         const { data, error } = await supabase
@@ -768,9 +779,9 @@ export async function getGaleriaPhotos(
  */
 export async function syncGaleriaPhotoCount(
   galeria: Galeria,
+  options?: { impersonateUserId?: string },
 ): Promise<ActionResult<{ photo_count: number }>> {
   try {
-    const supabase = await createSupabaseServerClient();
     const { success, userId, error: authError } = await getAuthAndStudioIds();
 
     if (!success || !userId) {
@@ -780,7 +791,30 @@ export async function syncGaleriaPhotoCount(
       };
     }
 
-    const photosResult = await getFolderPhotos(galeria.drive_folder_id);
+    const { profile } = await getAuthenticatedUser();
+    const actorIsAdmin = profile?.roles?.includes('admin') === true;
+    const isPersona = shouldUseServiceRoleForPersona({
+      impersonateUserId: options?.impersonateUserId,
+      actorIsAdmin,
+    });
+
+    if (isPersona) {
+      if (galeria.user_id !== String(options?.impersonateUserId ?? '').trim()) {
+        return {
+          success: false,
+          error: 'Galeria não pertence ao usuário personificado.',
+        };
+      }
+    }
+
+    const supabase = await createSupabaseServerOrPersonaAdmin({
+      impersonateUserId: options?.impersonateUserId,
+      actorIsAdmin,
+    });
+
+    const photosResult = await getFolderPhotos(galeria.drive_folder_id, {
+      driveUserId: galeria.user_id,
+    });
     if (!photosResult.success) {
       return {
         success: false,
@@ -797,7 +831,7 @@ export async function syncGaleriaPhotoCount(
         updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeria.id)
-      .eq('user_id', userId);
+      .eq('user_id', galeria.user_id);
 
     if (updateError) {
       return { success: false, error: updateError.message };
@@ -836,18 +870,12 @@ export async function syncGaleriaPhotoCountByGaleriaId(
       };
     }
 
-    // Usa versão sem sessão passando o userId do dono da galeria
-    const accessToken = await getDriveAccessTokenForUser(row.user_id);
-    if (!accessToken) {
-      return {
-        success: false,
-        error: 'Token do Google inválido para este usuário.',
-      };
-    }
-
+    const accessToken = await getDriveAccessTokenForUser(row.user_id, {
+      useServiceRole: true,
+    });
     const photos = await listPhotosFromDriveFolder(
       row.drive_folder_id,
-      accessToken,
+      accessToken ?? undefined,
       { userId: row.user_id },
     );
     const count = photos?.length || 0;

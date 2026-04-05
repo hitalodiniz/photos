@@ -39,7 +39,10 @@ export async function GET(req: Request) {
         const refreshToken = channel.tb_profiles?.google_refresh_token;
         if (!refreshToken) continue;
 
-        const accessToken = await getDriveAccessTokenForUser(channel.user_id);
+        const accessToken = await getDriveAccessTokenForUser(
+          channel.user_id,
+          { useServiceRole: true },
+        );
 
         if (!accessToken) continue;
 

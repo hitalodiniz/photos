@@ -206,7 +206,9 @@ export async function renewExpiringWatches() {
     try {
       // Obter access token do refresh token
 
-      const accessToken = await getDriveAccessTokenForUser(watch.user_id);
+      const accessToken = await getDriveAccessTokenForUser(watch.user_id, {
+        useServiceRole: true,
+      });
 
       if (!accessToken) {
         console.error(

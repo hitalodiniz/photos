@@ -42,6 +42,7 @@ export default function Dashboard({
   initialProfile,
   latestPendingRequest,
   scheduledCancellation,
+  impersonateUserId,
 }: DashboardProps) {
   const { user, isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
@@ -96,6 +97,7 @@ export default function Dashboard({
     setToast,
     filters.currentView,
     planLimits,
+    impersonateUserId,
   );
 
   const handleOpenOrganizer = (galeria: Galeria) => {
@@ -166,7 +168,7 @@ export default function Dashboard({
   return (
     <PlanProvider profile={initialProfile}>
       <GaleriaSyncObserver
-        userId={initialProfile?.id}
+        userId={impersonateUserId ?? initialProfile?.id ?? ''}
         onSynced={handleGaleriaSynced}
       />
       <div className="mx-auto flex flex-col lg:flex-row max-w-[1600px] gap-4 px-2 bg-luxury-bg min-h-screen pb-24 lg:pb-6">

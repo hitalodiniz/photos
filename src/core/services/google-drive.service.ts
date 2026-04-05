@@ -29,9 +29,10 @@ interface ActionResult<T = unknown> {
  */
 export async function getFolderPhotos(
   driveFolderId: string,
+  options?: { driveUserId?: string },
 ): Promise<ActionResult<DrivePhoto[]>> {
   try {
-    const { userId } = await getAuthenticatedUser();
+    const { userId, profile } = await getAuthenticatedUser();
 
     // 2. VALIDAÇÃO
     if (!driveFolderId) {
@@ -42,25 +43,40 @@ export async function getFolderPhotos(
       };
     }
 
-    // 3. RENOVAR O ACCESS TOKEN
-    const accessToken = await getDriveAccessTokenForUser(userId);
+    let effectiveUserId = userId;
+    if (options?.driveUserId) {
+      const target = options.driveUserId;
+      if (target !== userId && profile?.roles?.includes('admin') !== true) {
+        return {
+          success: false,
+          error: 'Acesso negado.',
+          data: [],
+        };
+      }
+      effectiveUserId = target;
+    }
 
-    if (!accessToken) {
+    if (!effectiveUserId) {
       return {
         success: false,
-        error: 'Falha na integração Google Drive. Refaça o login/integração.',
+        error: 'Usuário não autenticado.',
         data: [],
       };
     }
 
-    // 4. LISTAR FOTOS DO DRIVE (plano resolvido por userId nas regras de vídeo)
+    const tokenForOwnerIsForeign = effectiveUserId !== userId;
+    const accessToken = await getDriveAccessTokenForUser(effectiveUserId, {
+      useServiceRole: tokenForOwnerIsForeign,
+    });
+
+    // OAuth do dono; se não houver token, listPhotosFromDriveFolder tenta pasta pública (API key).
     const photos = await listPhotosFromDriveFolder(
       driveFolderId,
-      accessToken,
-      { userId },
+      accessToken ?? undefined,
+      { userId: effectiveUserId },
     );
 
-    // 5. ORDENAÇÃO: Data (mais recente) > Nome (alfabético)
+    // ORDENAÇÃO: Data (mais recente) > Nome (alfabético)
     photos.sort((a, b) => {
       const pA = a as {
         createdTime?: string;
@@ -109,17 +125,14 @@ async function getFolderPhotosForUser(
   driveFolderId: string,
   userId: string,
 ): Promise<ActionResult<DrivePhoto[]>> {
-  const accessToken = await getDriveAccessTokenForUser(userId);
-
-  if (!accessToken) {
-    return {
-      success: false,
-      error: 'Falha na integração Google Drive.',
-      data: [],
-    };
-  }
-
-  const photos = await listPhotosFromDriveFolder(driveFolderId, accessToken);
+  const accessToken = await getDriveAccessTokenForUser(userId, {
+    useServiceRole: true,
+  });
+  const photos = await listPhotosFromDriveFolder(
+    driveFolderId,
+    accessToken ?? undefined,
+    { userId },
+  );
   return { success: true, data: photos };
 }
 

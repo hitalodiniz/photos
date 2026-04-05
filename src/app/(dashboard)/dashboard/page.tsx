@@ -2,7 +2,11 @@
 import { redirect } from 'next/navigation';
 import { getGalerias } from '@/core/services/galeria.service';
 import { getProfileDataFresh } from '@/core/services/profile.service';
-import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { createSupabaseServerOrPersonaAdmin } from '@/lib/supabase.server';
+import {
+  resolveEffectiveProfileIdForPersona,
+  shouldUseServiceRoleForPersona,
+} from '@/lib/supabase.persona';
 import Dashboard from '.';
 
 export const metadata = {
@@ -28,6 +32,11 @@ export default async function DashboardPage({
   const impersonateUserId =
     typeof impersonateRaw === 'string' ? impersonateRaw : undefined;
   const isAdmin = profile.roles?.includes('admin') === true;
+  const effectiveProfileId = resolveEffectiveProfileIdForPersona({
+    sessionProfileId: profile.id,
+    impersonateUserId,
+    actorIsAdmin: isAdmin,
+  });
 
   const resultGalerias = await getGalerias(undefined, {
     impersonateUserId:
@@ -41,18 +50,29 @@ export default async function DashboardPage({
   }
 
   const initialGaleriasRaw = resultGalerias.success ? resultGalerias.data : [];
+  const isPersonaView = shouldUseServiceRoleForPersona({
+    impersonateUserId,
+    actorIsAdmin: isAdmin,
+  });
   const initialGalerias = initialGaleriasRaw.map((galeria) => ({
     ...galeria,
-    photographer: profile,
+    // Sem persona: mantém perfil da sessão (comportamento anterior).
+    // Com persona: usa o join `photographer` (dono da galeria) para URL pública, WhatsApp, etc.
+    photographer: isPersonaView
+      ? (galeria.photographer ?? profile)
+      : profile,
   }));
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerOrPersonaAdmin({
+    impersonateUserId,
+    actorIsAdmin: isAdmin,
+  });
   const { data: pendingCandidates } = await supabase
     .from('tb_upgrade_requests')
     .select(
       'id, payment_url, amount_final, processed_at, created_at, asaas_payment_id, billing_type, status, asaas_subscription_id, asaas_raw_status, overdue_since, plan_key_requested, billing_period',
     )
-    .eq('profile_id', profile.id)
+    .eq('profile_id', effectiveProfileId)
     .in('status', ['pending', 'processing', 'rejected', 'approved'])
     .order('created_at', { ascending: false })
     .limit(25);
@@ -109,7 +129,7 @@ export default async function DashboardPage({
   const { data: scheduledCancellationRow } = await supabase
     .from('tb_upgrade_requests')
     .select('id, scheduled_cancel_at, processed_at')
-    .eq('profile_id', profile.id)
+    .eq('profile_id', effectiveProfileId)
     .in('status', ['pending_cancellation', 'pending_downgrade'])
     .not('scheduled_cancel_at', 'is', null)
     .gte('scheduled_cancel_at', new Date().toISOString())

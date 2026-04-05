@@ -25,7 +25,16 @@
 // src/lib/supabase.server.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { shouldUseServiceRoleForPersona } from '@/lib/supabase.persona';
+
+export {
+  shouldUseServiceRoleForPersona,
+  resolvePersonaSupabaseMode,
+  resolveEffectiveProfileIdForPersona,
+  type PersonaSupabaseMode,
+} from '@/lib/supabase.persona';
 
 /**
  * ============================================================
@@ -133,9 +142,39 @@ export async function createSupabaseClientForCache() {
   );
 }
 
-export const createSupabaseAdmin = () => {
+export const createSupabaseAdmin = (): SupabaseClient => {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!, // ⚠️ Chave secreta que NUNCA vai para o cliente
   );
 };
+
+/**
+ * Servidor: com persona admin (`?impersonate=`), retorna cliente service role.
+ * Caso contrário, cliente da sessão (cookies).
+ *
+ * ⚠️ Só chamar após validar que o ator é admin quando `impersonateUserId` vier da URL.
+ */
+export async function createSupabaseServerOrPersonaAdmin(options: {
+  impersonateUserId?: string | null | undefined;
+  actorIsAdmin: boolean;
+}): Promise<SupabaseClient> {
+  if (shouldUseServiceRoleForPersona(options)) {
+    return createSupabaseAdmin();
+  }
+  return createSupabaseServerClient();
+}
+
+/**
+ * SSR read-only + persona: mesma regra que {@link createSupabaseServerOrPersonaAdmin},
+ * mas sem gravar cookies (layouts/pages que não são Server Action).
+ */
+export async function createSupabaseServerReadOnlyOrPersonaAdmin(options: {
+  impersonateUserId?: string | null | undefined;
+  actorIsAdmin: boolean;
+}): Promise<SupabaseClient> {
+  if (shouldUseServiceRoleForPersona(options)) {
+    return createSupabaseAdmin();
+  }
+  return createSupabaseServerClientReadOnly();
+}

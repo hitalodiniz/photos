@@ -39,6 +39,8 @@ export function useDashboardActions(
   ) => void,
   currentView: 'active' | 'archived' | 'trash',
   planLimits?: DashboardPlanLimits | null,
+  /** Modo suporte: sync e updates usam service role no servidor. */
+  impersonateUserId?: string,
 ) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -193,7 +195,9 @@ export function useDashboardActions(
       await revalidateDrivePhotos(galeria.drive_folder_id, galeria.id);
 
       // 2. Sincroniza e obtém a nova contagem
-      const result = await syncGaleriaPhotoCount(galeria);
+      const result = await syncGaleriaPhotoCount(galeria, {
+        impersonateUserId,
+      });
 
       const novoTotal = result.data?.photo_count;
 

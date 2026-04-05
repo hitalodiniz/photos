@@ -150,7 +150,9 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
         // 🎯 TENTATIVA 2: Se não funcionou, tenta com autenticação OAuth
         // Sempre chama listPhotosFromDriveFolder, mesmo sem token (undefined)
         // console.log(`[fetchDrivePhotos] API Key não retornou fotos. Tentando obter token OAuth...`);
-        const token = await getDriveAccessTokenForUser(userId);
+        const token = await getDriveAccessTokenForUser(userId, {
+          useServiceRole: true,
+        });
 
         // Chama listPhotosFromDriveFolder mesmo se token for null/undefined
         // console.log(`[fetchDrivePhotos] Tentando listar com OAuth (token ${token ? 'disponível' : 'não disponível, usando API Key'})...`);
@@ -257,7 +259,9 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         // Sempre chama listPhotosFromDriveFolder, mesmo sem token (undefined)
         // A função listPhotosFromDriveFolder gerencia internamente a estratégia dual
         // console.log(`[fetchPhotosByGalleryId] API Key não retornou fotos. Tentando obter token OAuth...`);
-        const token = await getDriveAccessTokenForUser(galeria.user_id);
+        const token = await getDriveAccessTokenForUser(galeria.user_id, {
+          useServiceRole: true,
+        });
 
         // Chama listPhotosFromDriveFolder mesmo se token for null/undefined
         // A função internamente tentará API Key novamente se token não estiver disponível

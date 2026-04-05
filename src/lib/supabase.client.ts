@@ -27,6 +27,13 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 
+export {
+  shouldUseServiceRoleForPersona,
+  resolvePersonaSupabaseMode,
+  resolveEffectiveProfileIdForPersona,
+  type PersonaSupabaseMode,
+} from '@/lib/supabase.persona';
+
 const SUPABASE_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
