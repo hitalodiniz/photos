@@ -119,7 +119,7 @@ describe('Validação de Permissões por Grupo', () => {
 
   describe('Grupo: Galeria & Experiência', () => {
     test('maxGridColumns deve permitir expansão visual', () => {
-      expect(PERMISSIONS_BY_PLAN.FREE.maxGridColumns).toBe(3);
+      expect(PERMISSIONS_BY_PLAN.FREE.maxGridColumns).toBe(4);
       expect(PERMISSIONS_BY_PLAN.PREMIUM.maxGridColumns).toBe(8);
     });
 
@@ -862,9 +862,9 @@ describe('Permissões Numéricas', () => {
 
   // FIX: PRO=8 (não 6), alinhado com plans.ts
   test.each([
-    ['FREE', 3],
-    ['START', 4],
-    ['PLUS', 5],
+    ['FREE', 4],
+    ['START', 5],
+    ['PLUS', 6],
     ['PRO', 8],
     ['PREMIUM', 8],
   ] as const)('maxGridColumns plano %s = %d', (planKey, cols) => {

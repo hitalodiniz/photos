@@ -315,14 +315,14 @@ export function StepBilling() {
         if (cancelled) return;
         if (!result.success) {
           setUpgradeCalculation(null);
-          if (couponCode.trim()) {
+          if ((couponCode ?? '').trim()) {
             setCouponFeedback(result.error ?? 'Cupom inválido.');
             setCouponFeedbackTone('error');
           }
           return;
         }
         setUpgradeCalculation(result.calculation ?? null);
-        if (!couponCode.trim()) {
+        if (!(couponCode ?? '').trim()) {
           setCouponFeedback(null);
           setCouponFeedbackTone('info');
           return;
@@ -453,7 +453,7 @@ export function StepBilling() {
     upgradeCalculation?.coupon_discount_amount ?? 0,
   );
   const couponCodeApplied = upgradeCalculation?.coupon_code_applied ?? null;
-  const isCouponApplied = couponCode.trim().length > 0;
+  const isCouponApplied = (couponCode ?? '').trim().length > 0;
   const refreshPreviewForCoupon = async (code: string) => {
     const result = await getUpgradePreview(
       selectedPlan,
@@ -551,6 +551,12 @@ export function StepBilling() {
   // Qualquer cenário em que não há valor a pagar agora (upgrade gratuito
   // ou downgrade com crédito cobrindo 100%) é tratado como "sem pagamento".
   const isZeroPayment = amountFinal === 0;
+
+  const showBreakdown =
+    residualCredit > 0 ||
+    pixDiscountActual > 0 ||
+    couponDiscountAmount > 0 ||
+    isFreeUpgrade;
 
   // ── Dados para o breakdown de upgrade gratuito ────────────────────────────
 
@@ -712,7 +718,7 @@ export function StepBilling() {
 
       {/* ── Forma de pagamento ── */}
       {!isCalculationLoading && (
-        <SheetSection className="py-2 px-3 space-y-1">
+        <SheetSection title="Forma de pagamento" className="py-2 px-3 space-y-1">
           {isZeroPayment && (
             <p className="text-[10px] text-petroleum/70 mb-1">
               Nenhum pagamento necessário — seu crédito cobre o plano.
@@ -817,7 +823,7 @@ export function StepBilling() {
            Aparece sempre que há ao menos um desconto (crédito, PIX ou gratuito).
            Substitui os dois boxes separados anteriores.
       ── */}
-      {!isCalculationLoading && (
+      {!isCalculationLoading && showBreakdown && (
         <SheetSection className="py-2 px-3">
           <PriceBreakdown
             periodLabel={periodLabels[billingPeriod]}

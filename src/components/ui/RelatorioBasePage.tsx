@@ -36,7 +36,7 @@ export function RelatorioBasePage({
       footerButtons={exportButtons}
       onSubmit={() => {}}
     >
-      <div className="flex flex-col h-full max-w-[1600px] mx-auto px-4 md:px-6 antialiased subpixel-antialiased">
+      <div className="flex flex-col h-full max-w-[1600px] mx-auto px-4  antialiased subpixel-antialiased">
         {headerContent && (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-b border-slate-100">
             {headerContent}

@@ -542,10 +542,13 @@ describe('Webhook — Eventos ignorados', () => {
 
   ignoredEvents.forEach((event) => {
     it(`${event} → HTTP 200 sem queries ao banco`, async () => {
-      const supabase = { from: vi.fn(), rpc: vi.fn() };
-      vi.mocked(
-        await import('@/lib/supabase.server'),
-      ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+      const supabase = {
+        from: vi.fn().mockReturnValue(makeSelect({ id: 1 })),
+        rpc: vi.fn(),
+      };
+      const mod = vi.mocked(await import('@/lib/supabase.server'));
+      mod.createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
+      mod.createSupabaseAdmin = vi.fn().mockReturnValue(supabase);
 
       const res = await POST(
         makeRequest(

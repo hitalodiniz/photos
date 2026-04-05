@@ -10,6 +10,8 @@ export interface PendingPaymentRequest {
   status?: string | null;
   asaas_subscription_id?: string | null;
   asaas_raw_status?: string | null;
+  plan_key_requested?: string | null;
+  billing_period?: string | null;
 }
 
 export interface ScheduledCancellationInfo {

@@ -61,53 +61,62 @@ function makeOldRequest(overrides: Record<string, unknown> = {}) {
   });
 }
 
-const makeSelectChain = (data: unknown, error: unknown = null) => ({
-  select: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  neq: vi.fn().mockReturnThis(),
-  in: vi.fn().mockReturnThis(),
-  order: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockReturnThis(),
-  maybeSingle: vi.fn().mockResolvedValue({ data, error }),
-  single: vi.fn().mockResolvedValue({ data, error }),
-});
-
-const makeUpdateChain = (error: unknown = null) => ({
-  update: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockResolvedValue({ data: null, error }),
-  then: vi
-    .fn()
-    .mockImplementation((r: (v: unknown) => void) => r({ data: null, error })),
-});
-
-const makeInsertChain = () => ({
-  insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-});
+const makeGenericChain = (data: unknown = null, error: unknown = null) => {
+  const chain: any = {
+    select: vi.fn(() => chain),
+    update: vi.fn(() => chain),
+    insert: vi.fn(() => chain),
+    delete: vi.fn(() => chain),
+    eq: vi.fn(() => chain),
+    neq: vi.fn(() => chain),
+    in: vi.fn(() => chain),
+    not: vi.fn(() => chain),
+    order: vi.fn(() => chain),
+    limit: vi.fn(() => chain),
+    gte: vi.fn(() => chain),
+    lte: vi.fn(() => chain),
+    gt: vi.fn(() => chain),
+    lt: vi.fn(() => chain),
+    maybeSingle: vi.fn().mockResolvedValue({ data, error }),
+    single: vi.fn().mockResolvedValue({ data, error }),
+    then: vi.fn((resolve) => resolve({ data, error })),
+  };
+  return chain;
+};
 
 function makeSupabaseForScheduled(req: any) {
+  const reqWithCancel = { ...req, scheduled_cancel_at: '2026-01-01T00:00:00.000Z' };
   return {
-    from: vi
-      .fn()
-      .mockReturnValueOnce(makeSelectChain(req)) // busca request ativo
-      .mockReturnValueOnce(makeUpdateChain()) // update tb_profiles is_cancelling
-      .mockReturnValueOnce(makeUpdateChain()) // update tb_upgrade_requests status
-      .mockReturnValueOnce(makeInsertChain()), // insert tb_plan_history
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === 'tb_upgrade_requests') {
+        const chain = makeGenericChain();
+        chain.maybeSingle = vi.fn().mockResolvedValue({ data: reqWithCancel, error: null });
+        chain.then = vi.fn((resolve) => resolve({ data: [], error: null }));
+        return chain;
+      }
+      return makeGenericChain();
+    }),
     rpc: vi.fn(),
   };
 }
 
 function makeSupabaseForImmediate(req: any) {
   return {
-    from: vi
-      .fn()
-      .mockReturnValueOnce(makeSelectChain(req))
-      .mockReturnValueOnce(makeSelectChain({ metadata: {} }))
-      .mockReturnValueOnce(makeUpdateChain())
-      .mockReturnValueOnce(makeSelectChain({ plan_key: 'PRO' }))
-      .mockReturnValueOnce(makeUpdateChain())
-      .mockReturnValueOnce(makeInsertChain())
-      .mockReturnValueOnce(makeUpdateChain())
-      .mockReturnValueOnce(makeSelectChain([])),
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === 'tb_upgrade_requests') {
+        const chain = makeGenericChain();
+        chain.maybeSingle = vi.fn().mockResolvedValueOnce({ data: req, error: null });
+        chain.then = vi.fn((resolve) => resolve({ data: [], error: null }));
+        return chain;
+      }
+      if (table === 'tb_profiles') {
+        const chain = makeGenericChain();
+        chain.maybeSingle = vi.fn().mockResolvedValueOnce({ data: { metadata: {}, plan_key: 'PRO' }, error: null });
+        chain.single = vi.fn().mockResolvedValueOnce({ data: { metadata: {}, plan_key: 'PRO' }, error: null });
+        return chain;
+      }
+      return makeGenericChain();
+    }),
     rpc: vi.fn(),
   };
 }
@@ -156,7 +165,7 @@ describe('handleSubscriptionCancellation — pré-condições', () => {
   it('nenhuma assinatura ativa no banco → success=false, error descritivo', async () => {
     vi.mocked(getAuthenticatedUser).mockResolvedValue(AUTH_OK as never);
     const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(null)),
+      from: vi.fn().mockReturnValue(makeGenericChain(null)),
       rpc: vi.fn(),
     };
     vi.mocked(
@@ -331,25 +340,23 @@ describe('handleSubscriptionCancellation — notes com reason/comment', () => {
     const req = makeOldRequest();
     let capturedNotes: string | null = null;
 
-    const updateChain = {
-      update: vi.fn((payload: Record<string, unknown>) => {
-        if (payload.status === 'pending_downgrade') {
-          capturedNotes = payload.notes as string;
-        }
-        return updateChain;
-      }),
-      eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-    };
+    const updateChain = makeGenericChain();
+    updateChain.update = vi.fn((payload: Record<string, unknown>) => {
+      if (payload.status === 'pending_downgrade') {
+        capturedNotes = payload.notes as string;
+      }
+      return updateChain;
+    });
 
     const supabase = {
-      from: vi
-        .fn()
-        .mockReturnValueOnce(makeSelectChain(req))
-        .mockReturnValueOnce(makeUpdateChain()) // is_cancelling
-        .mockReturnValueOnce(updateChain) // pending_downgrade (capturado)
-        .mockReturnValueOnce(makeInsertChain()),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'tb_upgrade_requests') return updateChain;
+        return makeGenericChain();
+      }),
       rpc: vi.fn(),
     };
+    // Force the first select to return req
+    updateChain.maybeSingle = vi.fn().mockResolvedValue({ data: req, error: null });
     vi.mocked(
       await import('@/lib/supabase.server'),
     ).createSupabaseServerClient = vi.fn().mockResolvedValue(supabase);
@@ -394,7 +401,15 @@ describe('handleSubscriptionCancellation — já em pending_downgrade', () => {
     vi.stubGlobal('fetch', vi.fn());
     const req = makeOldRequest({ status: 'pending_downgrade' });
     const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'tb_upgrade_requests') {
+          const chain = makeGenericChain();
+          chain.maybeSingle = vi.fn().mockResolvedValue({ data: req, error: null });
+          chain.then = vi.fn((resolve) => resolve({ data: [], error: null }));
+          return chain;
+        }
+        return makeGenericChain();
+      }),
       rpc: vi.fn(),
     };
     vi.mocked(
@@ -412,7 +427,15 @@ describe('handleSubscriptionCancellation — já em pending_downgrade', () => {
     vi.stubGlobal('fetch', vi.fn());
     const req = makeOldRequest({ status: 'pending_cancellation' });
     const supabase = {
-      from: vi.fn().mockReturnValue(makeSelectChain(req)),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'tb_upgrade_requests') {
+          const chain = makeGenericChain();
+          chain.maybeSingle = vi.fn().mockResolvedValue({ data: req, error: null });
+          chain.then = vi.fn((resolve) => resolve({ data: [], error: null }));
+          return chain;
+        }
+        return makeGenericChain();
+      }),
       rpc: vi.fn(),
     };
     vi.mocked(
@@ -479,15 +502,19 @@ describe('handleSubscriptionCancellation — pending_change não interfere', () 
       id: 'approved-1',
       status: 'approved',
       asaas_subscription_id: 'sub-approved',
+      scheduled_cancel_at: '2026-01-01T00:00:00.000Z',
     });
-    const updateBuilder = makeUpdateChain();
+    
+    const updateBuilder = makeGenericChain();
     const supabase = {
-      from: vi
-        .fn()
-        .mockReturnValueOnce(makeSelectChain(approvedReq))
-        .mockReturnValueOnce(makeUpdateChain())
-        .mockReturnValueOnce(updateBuilder)
-        .mockReturnValueOnce(makeInsertChain()),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'tb_upgrade_requests') {
+          updateBuilder.maybeSingle = vi.fn().mockResolvedValue({ data: approvedReq, error: null });
+          updateBuilder.then = vi.fn((resolve) => resolve({ data: [], error: null }));
+          return updateBuilder;
+        }
+        return makeGenericChain();
+      }),
       rpc: vi.fn(),
     };
     vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =
@@ -508,16 +535,21 @@ describe('handleSubscriptionCancellation — pending_change não interfere', () 
       asaas_subscription_id: 'sub-approved-2',
       amount_final: 79,
     });
-    const fromMock = vi
-      .fn()
-      .mockReturnValueOnce(makeSelectChain(approvedReq))
-      .mockReturnValueOnce(makeSelectChain({ metadata: {} }))
-      .mockReturnValueOnce(makeUpdateChain())
-      .mockReturnValueOnce(makeSelectChain({ plan_key: 'PRO' }))
-      .mockReturnValueOnce(makeUpdateChain())
-      .mockReturnValueOnce(makeInsertChain())
-      .mockReturnValueOnce(makeUpdateChain())
-      .mockReturnValueOnce(makeSelectChain([]));
+    const fromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'tb_upgrade_requests') {
+        const chain = makeGenericChain();
+        chain.maybeSingle = vi.fn().mockResolvedValue({ data: approvedReq, error: null });
+        chain.then = vi.fn((resolve) => resolve({ data: [], error: null }));
+        return chain;
+      }
+      if (table === 'tb_profiles') {
+        const chain = makeGenericChain();
+        chain.maybeSingle = vi.fn().mockResolvedValue({ data: { metadata: {}, plan_key: 'PRO' }, error: null });
+        chain.single = vi.fn().mockResolvedValue({ data: { metadata: {}, plan_key: 'PRO' }, error: null });
+        return chain;
+      }
+      return makeGenericChain();
+    });
 
     const supabase = { from: fromMock, rpc: vi.fn() };
     vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =

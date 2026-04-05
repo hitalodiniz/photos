@@ -190,38 +190,38 @@ describe('SidebarStorage — Exibição de Limites', () => {
 });
 
 // isGalLimit = galeriasCount >= maxGalleriesHardCap
-// Quando limite atingido: renderiza botão com "Limite atingido — Upgrade"
+// Quando limite atingido: renderiza botão com "Aumentar limite"
 // Quando abaixo: renderiza label "Galerias" e texto de disponíveis
 describe('SidebarStorage — Estado de Limite Atingido', () => {
-  test('FREE no limite (hard cap): exibe "Limite atingido" e oculta disponíveis', () => {
+  test('FREE no limite (hard cap): exibe "Aumentar limite" e oculta disponíveis', () => {
     renderWithPlan('FREE', MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE);
-    expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
+    expect(screen.getByText(/aumentar limite/i)).toBeInTheDocument();
     // label "disponíveis" não aparece quando no limite
     expect(screen.queryByText(/disponíve/i)).not.toBeInTheDocument();
   });
 
-  test('FREE abaixo do limite: exibe disponíveis e não exibe "Limite atingido"', () => {
+  test('FREE abaixo do limite: exibe disponíveis e não exibe "Aumentar limite"', () => {
     renderWithPlan('FREE', Math.max(0, MAX_GALLERIES_HARD_CAP_BY_PLAN.FREE - 1));
     // effectiveMax = min(2 + floor(450/150), 3) = min(2+3, 3) = 3 → available = 1
     expect(screen.getByText(/disponíve/i)).toBeInTheDocument();
-    expect(screen.queryByText(/limite atingido/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aumentar limite/i)).not.toBeInTheDocument();
   });
 
   test('PLUS abaixo do limite (10/30): exibe label "Galerias" e não exibe limite', () => {
     renderWithPlan('PLUS', 10);
     expect(screen.getByText(/galerias/i)).toBeInTheDocument();
-    expect(screen.queryByText(/limite atingido/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aumentar limite/i)).not.toBeInTheDocument();
   });
 
   test('PRO no hard cap: exibe botão de upgrade', () => {
     renderWithPlan('PRO', MAX_GALLERIES_HARD_CAP_BY_PLAN.PRO);
-    expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
+    expect(screen.getByText(/aumentar limite/i)).toBeInTheDocument();
     expect(screen.queryByText(/disponíve/i)).not.toBeInTheDocument();
   });
 
   test('PREMIUM no limite: exibe botão de upgrade', () => {
     renderWithPlan('PREMIUM', MAX_GALLERIES_HARD_CAP_BY_PLAN.PREMIUM);
-    expect(screen.getByText(/limite atingido/i)).toBeInTheDocument();
+    expect(screen.getByText(/aumentar limite/i)).toBeInTheDocument();
   });
 });
 
@@ -305,9 +305,9 @@ describe('SidebarStorage — UpgradeModal', () => {
     expect(screen.queryByTestId('upgrade-modal')).not.toBeInTheDocument();
   });
 
-  test('ao clicar em "Limite atingido" o UpgradeModal abre', () => {
+  test('ao clicar em "Aumentar limite" o UpgradeModal abre', () => {
     renderWithPlan('FREE', 3);
-    const btn = screen.getByRole('button', { name: /limite atingido/i });
+    const btn = screen.getByRole('button', { name: /aumentar limite/i });
     fireEvent.click(btn);
     // após clique → modal mockado aparece com data-testid
     expect(screen.getByTestId('upgrade-modal')).toBeInTheDocument();

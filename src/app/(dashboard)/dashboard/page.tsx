@@ -50,7 +50,7 @@ export default async function DashboardPage({
   const { data: pendingCandidates } = await supabase
     .from('tb_upgrade_requests')
     .select(
-      'id, payment_url, amount_final, processed_at, created_at, asaas_payment_id, billing_type, status, asaas_subscription_id, asaas_raw_status, overdue_since',
+      'id, payment_url, amount_final, processed_at, created_at, asaas_payment_id, billing_type, status, asaas_subscription_id, asaas_raw_status, overdue_since, plan_key_requested, billing_period',
     )
     .eq('profile_id', profile.id)
     .in('status', ['pending', 'processing', 'rejected', 'approved'])
@@ -101,6 +101,8 @@ export default async function DashboardPage({
         asaas_subscription_id:
           (latestPending.asaas_subscription_id as string | null) ?? null,
         asaas_raw_status: (latestPending.asaas_raw_status as string | null) ?? null,
+        plan_key_requested: (latestPending.plan_key_requested as string | null) ?? null,
+        billing_period: (latestPending.billing_period as string | null) ?? null,
       }
     : null;
 

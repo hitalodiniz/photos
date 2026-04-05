@@ -482,20 +482,20 @@ export function ManagePaymentSheet({
           <div className="flex gap-2 w-full">
             <button
               type="button"
-              onClick={dismissSheet}
-              disabled={loading || verifyingPayment}
-              className="btn-secondary-white basis-1/4 grow-0 shrink-0"
-            >
-              Fechar
-            </button>
-            <button
-              type="button"
               onClick={() => setMode('select_method')}
               disabled={loading || verifyingPayment}
               className="btn-luxury-primary basis-3/4 grow-0 shrink-0 flex items-center justify-center gap-1.5"
             >
               <RefreshCw size={14} />
               Trocar método de pagamento
+            </button>
+            <button
+              type="button"
+              onClick={dismissSheet}
+              disabled={loading || verifyingPayment}
+              className="btn-secondary-white basis-1/4 grow-0 shrink-0"
+            >
+              Fechar
             </button>
           </div>
         </SheetFooter>

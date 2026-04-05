@@ -71,7 +71,7 @@ describe('Galeria Service - CRUD Operations', () => {
         '2026-01-15',
       );
 
-      expect(slug).toBe('hitalo/2026/01/15/ensaio-gestante');
+      expect(slug).toBe('hitalo/ensaio-gestante');
     });
 
     it('deve truncar títulos muito longos para no máximo 60 caracteres', async () => {
@@ -104,7 +104,7 @@ describe('Galeria Service - CRUD Operations', () => {
 
       const slug = await generateUniqueDatedSlug('Festa', '2026-01-01');
 
-      expect(slug).toBe('hitalo/2026/01/01/festa-2');
+      expect(slug).toBe('hitalo/festa-2');
     });
 
     it('deve ignorar colisão com o próprio ID ao editar', async () => {
@@ -126,7 +126,7 @@ describe('Galeria Service - CRUD Operations', () => {
         currentId,
       );
 
-      expect(slug).toBe('hitalo/2026/01/01/titulo');
+      expect(slug).toBe('hitalo/titulo');
     });
 
     it('deve sanitizar caracteres especiais e acentos no título', async () => {
@@ -141,7 +141,7 @@ describe('Galeria Service - CRUD Operations', () => {
         '2026-01-01',
       );
 
-      expect(slug).toBe('hitalo/2026/01/01/casamento-jose-e-maria');
+      expect(slug).toBe('hitalo/casamento-jose-e-maria');
     });
 
     it('deve quebrar o loop e retornar slug base em erro de banco', async () => {
@@ -160,7 +160,7 @@ describe('Galeria Service - CRUD Operations', () => {
       const slug = await generateUniqueDatedSlug('Festa', '2026-01-01');
 
       // Deve retornar o slug base sem sufixo, sem travar
-      expect(slug).toBe('hitalo/2026/01/01/festa');
+      expect(slug).toBe('hitalo/festa');
     });
   });
 

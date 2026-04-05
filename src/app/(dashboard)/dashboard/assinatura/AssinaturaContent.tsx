@@ -55,6 +55,7 @@ import { billingNotesDisplayText } from '@/core/services/asaas/utils/billing-not
 import { UpgradeUpsellCard } from '@/components/ui/Assinatura/UpgradeUpsellCard';
 import { RelatorioTable } from '@/components/ui/RelatorioTable';
 import { UpgradeRequestNotesSheet } from './UpgradeRequestNotesSheet';
+import { div } from 'framer-motion/client';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -843,7 +844,7 @@ export default function AssinaturaContent({
     width?: string;
   }> = [
     {
-      header: 'Assinatura',
+      header: 'Data assinatura',
       accessor: (item) => (
         <span className="text-[11px] text-slate-700 whitespace-nowrap font-medium">
           {formatDateTimePtBrBilling(item.created_at)}
@@ -852,7 +853,7 @@ export default function AssinaturaContent({
       icon: Calendar,
     },
     {
-      header: 'Início plano',
+      header: 'Início ciclo',
       accessor: (item) => (
         <span className="text-[11px] text-slate-700 whitespace-nowrap font-medium">
           {getPlanStartAt(item) ?? '—'}
@@ -881,7 +882,7 @@ export default function AssinaturaContent({
       align: 'right',
     },
     {
-      header: 'Pagamento',
+      header: 'Método Pagamento',
       accessor: (item) => (
         <span className="text-[10px] font-medium uppercase">
           {item.billing_type === 'CREDIT_CARD'
@@ -1172,70 +1173,6 @@ export default function AssinaturaContent({
     },
   ];
 
-  // ─── Header ───────────────────────────────────────────────────────────────
-
-  const headerContent = (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-      <div className="flex flex-col min-w-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gold/80 mb-0.5">
-          Minha assinatura
-        </span>
-        <h2 className="text-[15px] font-semibold uppercase text-petroleum leading-tight">
-          Plano {planDisplayName(planKey)}
-          {profile.is_trial && (
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20 text-[10px] font-semibold text-gold align-middle">
-              Teste Grátis
-            </span>
-          )}
-          {profile.is_exempt && !profile.is_trial && (
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-semibold text-emerald-600 align-middle">
-              Assinatura Cortesia
-            </span>
-          )}
-        </h2>
-        {hasPendingCancellation && cancellationEndsAt && (
-          <p className="text-[10px] font-medium text-amber-700 mt-1">
-            Assinatura atual será cancelada em {cancellationEndsAt}.
-          </p>
-        )}
-      </div>
-      {(hasVigenteSubscriptionInRequests || hasAnyAwaitingPaymentRecord) &&
-        (canReactivateSubscription && !hasAnyAwaitingPaymentRecord ? (
-          /* CONTAINER DE REATIVAÇÃO */
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-gold/80">
-              Assinatura interrompida
-            </span>
-            <button
-              type="button"
-              onClick={handleReactivateSubscription}
-              disabled={!reactivationSubscriptionId || reactivateLoading}
-              className="btn-luxury-primary h-8 "
-            >
-              {reactivateLoading ? (
-                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <CheckCircle2 size={14} />
-              )}
-              {reactivateLoading ? 'Processando...' : 'Reativar Plano'}
-            </button>
-          </div>
-        ) : (
-          /* BOTÃO CANCELAR COM BORDA */
-          <button
-            type="button"
-            onClick={() => setShowCancelModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-red-900/30"
-          >
-            <AlertTriangle size={14} />
-            {hasAnyAwaitingPaymentRecord
-              ? 'Cancelar assinatura pendente de pagamento'
-              : 'Cancelar assinatura'}
-          </button>
-        ))}
-    </div>
-  );
-
   // ─── Render ───────────────────────────────────────────────────────────────
   const pendingChangeRequest = sortedHistory.find(
     (r) => r.status === 'pending_change',
@@ -1296,11 +1233,33 @@ export default function AssinaturaContent({
         title="Minha assinatura"
         onBack={() => router.push('/dashboard')}
         footerStatusText={`Plano ${planDisplayName(planKey)}`}
-        headerContent={headerContent}
       >
-        <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-4">
-          <aside className="w-full lg:w-[300px] space-y-3 shrink-0">
+        <div className="max-w-[1600px] flex flex-col lg:flex-row gap-4">
+          <aside className="w-full lg:w-[280px] space-y-3 shrink-0">
             {/* Resumo do plano */}
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gold/80 mb-0.5 pt-1">
+                Minha assinatura
+              </span>
+              <h2 className="text-[15px] font-semibold uppercase text-petroleum leading-tight">
+                Plano {planDisplayName(planKey)}
+                {profile.is_trial && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20 text-[10px] font-semibold text-gold align-middle">
+                    Teste Grátis
+                  </span>
+                )}
+                {profile.is_exempt && !profile.is_trial && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-semibold text-emerald-600 align-middle">
+                    Assinatura Cortesia
+                  </span>
+                )}
+              </h2>
+              {hasPendingCancellation && cancellationEndsAt && (
+                <p className="text-[10px] font-medium text-amber-700 mt-1">
+                  Assinatura atual será cancelada em {cancellationEndsAt}.
+                </p>
+              )}
+            </div>
             <div className="p-3 bg-white rounded-luxury border border-slate-200 grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2 border-r border-slate-100 pr-3">
                 <Calendar size={16} className="text-gold shrink-0" />
@@ -1464,18 +1423,58 @@ export default function AssinaturaContent({
           </aside>
 
           {/* ── Conteúdo principal ── */}
-          <main className="flex-1 min-w-0 space-y-4">
-            <div className="bg-white rounded-luxury border border-slate-200 p-4 shadow-sm">
-              <h2 className="text-[9px] font-semibold uppercase text-slate-500 tracking-tighter mb-3">
-                Histórico de pagamentos
-              </h2>
-              <RelatorioTable<UpgradeRequest>
-                data={sortedHistory}
-                columns={columns}
-                emptyMessage="Nenhum pagamento encontrado."
-                itemsPerPage={10}
-              />
+
+          <main className="flex-1 min-w-0 space-y-4 pt-1 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+              <div className="flex pt-1.5">
+                <span className="font-semibold uppercase text-[11px] tracking-wide">
+                  Histórico de assinaturas
+                </span>
+              </div>
+              {(hasVigenteSubscriptionInRequests ||
+                hasAnyAwaitingPaymentRecord) &&
+                (canReactivateSubscription && !hasAnyAwaitingPaymentRecord ? (
+                  /* CONTAINER DE REATIVAÇÃO */
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-gold/80">
+                      Assinatura interrompida
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleReactivateSubscription}
+                      disabled={
+                        !reactivationSubscriptionId || reactivateLoading
+                      }
+                      className="btn-luxury-primary h-8 "
+                    >
+                      {reactivateLoading ? (
+                        <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <CheckCircle2 size={14} />
+                      )}
+                      {reactivateLoading ? 'Processando...' : 'Reativar Plano'}
+                    </button>
+                  </div>
+                ) : (
+                  /* BOTÃO CANCELAR COM BORDA */
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-red-900/30"
+                  >
+                    <AlertTriangle size={14} />
+                    {hasAnyAwaitingPaymentRecord
+                      ? 'Cancelar assinatura pendente de pagamento'
+                      : 'Cancelar assinatura'}
+                  </button>
+                ))}
             </div>
+            <RelatorioTable<UpgradeRequest>
+              data={sortedHistory}
+              columns={columns}
+              emptyMessage="Nenhum pagamento encontrado."
+              itemsPerPage={10}
+            />
           </main>
         </div>
       </RelatorioBasePage>
@@ -1578,8 +1577,16 @@ export default function AssinaturaContent({
                 }
               : null
         }
-        planName={planDisplayName(planKey)}
-        planPeriod={managePaymentTarget?.billing_period ?? 'monthly'}
+        planName={planDisplayName(
+          managePaymentTarget?.plan_key_requested ??
+            latestPendingRequest?.plan_key_requested ??
+            planKey,
+        )}
+        planPeriod={
+          managePaymentTarget?.billing_period ??
+          latestPendingRequest?.billing_period ??
+          'monthly'
+        }
         onSuccess={(_newPaymentId) => router.refresh()}
       />
 

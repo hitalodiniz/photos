@@ -23,6 +23,7 @@ import { isUpgradeRequestPaymentComplete } from '@/core/types/billing';
 import { useRouter } from 'next/navigation';
 import { formatBRL, formatDatePtBr, formatDateLong } from '../utils';
 import { SheetFooter } from '@/components/ui/Sheet';
+import { usePlan } from '@/core/context/PlanContext';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -116,8 +117,10 @@ function SecurityBadge() {
 }
 
 function SupportLink() {
+  const { profile } = usePlan();
+  const username = profile?.username ?? 'desconhecido';
   const msg = encodeURIComponent(
-    'Olá! Preciso de ajuda com meu pedido de upgrade.',
+    `Olá! Preciso de ajuda com a minha assinatura, meu nome de usuário é ${username}.`,
   );
   return (
     <a

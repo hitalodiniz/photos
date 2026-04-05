@@ -6,6 +6,10 @@ const mockEnforcePhotoQuotaByArchivingOldest = vi.fn();
 const mockCreateSupabaseAdmin = vi.fn();
 const mockGetNeedsAdjustment = vi.fn();
 
+vi.mock('@/core/services/theme-rollback.service', () => ({
+  applyThemeRollbackForLowerPlan: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/core/services/asaas.service', () => ({
   performDowngradeToFree: (...args: unknown[]) =>
     mockPerformDowngradeToFree(...args),
@@ -96,7 +100,7 @@ function makeSupabaseForApplyDowngrades() {
     return upgradeBuilder;
   });
 
-  return { from };
+  return { from, rpc: vi.fn().mockResolvedValue({ error: null }) };
 }
 
 function makeSupabaseForPendingChangeOnly() {
@@ -109,8 +113,9 @@ function makeSupabaseForPendingChangeOnly() {
     lte: vi.fn(() => upgradeBuilder),
     order: vi.fn(() => {
       upgradeQueryOrderCalls += 1;
-      if (upgradeQueryOrderCalls === 1) return Promise.resolve({ data: [], error: null }); // scheduled
-      if (upgradeQueryOrderCalls === 2) return Promise.resolve({ data: [], error: null }); // overdue
+      if (upgradeQueryOrderCalls === 1) return Promise.resolve({ data: [], error: null }); // pending_downgrade
+      if (upgradeQueryOrderCalls === 2) return Promise.resolve({ data: [], error: null }); // pending_cancellation
+      if (upgradeQueryOrderCalls === 3) return Promise.resolve({ data: [], error: null }); // overdue
       return Promise.resolve({
         data: [
           {
@@ -163,7 +168,7 @@ function makeSupabaseForPendingChangeOnly() {
     return upgradeBuilder;
   });
 
-  return { from };
+  return { from, rpc: vi.fn().mockResolvedValue({ error: null }) };
 }
 
 describe('GET /api/cron/apply-downgrades', () => {
@@ -227,6 +232,10 @@ describe('GET /api/cron/apply-downgrades', () => {
 
     expect(res.status).toBe(200);
     expect(json.ok).toBe(true);
+    console.log('JSON:', json);
+    if (json.errors && json.errors.length > 0) {
+      console.log('ERRORS:', json.errors);
+    }
     expect(mockPerformDowngradeToFree).not.toHaveBeenCalled();
     expect(mockEnforcePhotoQuotaByArchivingOldest).toHaveBeenCalledWith(
       expect.any(Object),

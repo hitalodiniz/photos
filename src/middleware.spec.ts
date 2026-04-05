@@ -111,6 +111,7 @@ describe('middleware', () => {
     vi.mocked(fetchProfileDirectDB).mockResolvedValue({
       username: 'testuser',
       use_subdomain: true,
+      plan_key: 'PREMIUM',
     } as any);
 
     const request = new NextRequest('https://testuser.test.com/', {
@@ -143,6 +144,7 @@ describe('middleware', () => {
     vi.mocked(fetchProfileDirectDB).mockResolvedValue({
       username: 'testuser',
       use_subdomain: true,
+      plan_key: 'PREMIUM',
     } as any);
 
     const request = new NextRequest('https://test.com/testuser', {

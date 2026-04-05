@@ -1,10 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
-
 export async function logSystemEvent(data: {
   serviceName: string;
   status: 'success' | 'error' | 'partial';
@@ -13,6 +8,14 @@ export async function logSystemEvent(data: {
   errorMessage?: string;
 }) {
   try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('Variáveis do Supabase ausentes para logSystemEvent');
+      return;
+    }
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+    );
     await supabaseAdmin.from('tb_system_logs').insert([
       {
         service_name: data.serviceName,

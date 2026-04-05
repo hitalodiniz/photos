@@ -81,7 +81,7 @@ describe('UpgradeModal Integration', () => {
       screen.getByText(/exclusivo para usuários do plano/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Migrar para o premium/i }),
+      screen.getByRole('button', { name: /migrar para o plano premium/i }),
     ).toBeInTheDocument();
   });
 
@@ -159,7 +159,7 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
     expect(
-      screen.getByRole('button', { name: /migrar para o pro/i }),
+      screen.getByRole('button', { name: /migrar para o plano pro/i }),
     ).toBeInTheDocument();
   });
 
@@ -177,7 +177,7 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
     expect(
-      screen.getByRole('button', { name: /migrar para o pro/i }),
+      screen.getByRole('button', { name: /migrar para o plano pro/i }),
     ).toBeInTheDocument();
   });
 
@@ -195,7 +195,7 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
     expect(
-      screen.getByRole('button', { name: /migrar para o premium/i }),
+      screen.getByRole('button', { name: /migrar para o plano premium/i }),
     ).toBeInTheDocument();
   });
 
@@ -215,7 +215,7 @@ describe('UpgradeModal Integration', () => {
       </PlanProvider>,
     );
     expect(
-      screen.getByRole('button', { name: /migrar para o start/i }),
+      screen.getByRole('button', { name: /migrar para o plano start/i }),
     ).toBeInTheDocument();
   });
 
@@ -240,7 +240,7 @@ describe('UpgradeModal Integration', () => {
         .length,
     ).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByRole('button', { name: /migrar para o pro/i }),
+      screen.getByRole('button', { name: /migrar para o plano pro/i }),
     ).toBeInTheDocument();
   });
 
@@ -262,7 +262,7 @@ describe('UpgradeModal Integration', () => {
       screen.getByText(/remova a marca do app do rodapé/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /migrar para o premium/i }),
+      screen.getByRole('button', { name: /migrar para o plano premium/i }),
     ).toBeInTheDocument();
   });
 
@@ -284,7 +284,7 @@ describe('UpgradeModal Integration', () => {
       screen.getByText(/permita que clientes selecionem e favoritem fotos/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /migrar para o start/i }),
+      screen.getByRole('button', { name: /migrar para o plano start/i }),
     ).toBeInTheDocument();
   });
 });

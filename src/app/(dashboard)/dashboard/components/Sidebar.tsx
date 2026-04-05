@@ -451,8 +451,20 @@ export default function Sidebar({
               }
             : null
         }
-        planName={planKey}
-        planPeriod="monthly"
+        planName={
+          (latestPendingRequest?.plan_key_requested ?? planKey) === 'FREE'
+            ? 'Gratuito'
+            : (latestPendingRequest?.plan_key_requested ?? planKey) === 'PREMIUM'
+              ? 'Premium'
+              : (latestPendingRequest?.plan_key_requested ?? planKey) === 'PRO'
+                ? 'Pro'
+                : (latestPendingRequest?.plan_key_requested ?? planKey) === 'START'
+                  ? 'Start'
+                  : (latestPendingRequest?.plan_key_requested ?? planKey) === 'PLUS'
+                    ? 'Plus'
+                    : (latestPendingRequest?.plan_key_requested ?? planKey)
+        }
+        planPeriod={latestPendingRequest?.billing_period ?? 'monthly'}
         onSuccess={(_newPaymentId) => {
           if (typeof window !== 'undefined') window.location.reload();
         }}

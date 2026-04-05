@@ -189,7 +189,9 @@ export async function rollbackPendingUpgradeOnAsaas(params: {
   }
 
   const segment = defaultSegment();
-  const oldPlanKey = String(row.plan_key_current ?? '').toUpperCase() as PlanKey;
+  const oldPlanKey = String(
+    row.plan_key_current ?? '',
+  ).toUpperCase() as PlanKey;
   if (!oldPlanKey || !PLANS_BY_SEGMENT[segment]?.[oldPlanKey]) {
     return {
       success: false,
@@ -269,12 +271,12 @@ export async function rollbackPendingUpgradeOnAsaas(params: {
       ? billingSource.amount_final
       : null;
   const recurringValue = lastPaidCycle ?? catalogRecurring;
-  if (!(recurringValue > 0)) {
-    return {
-      success: false,
-      error: 'Não foi possível calcular o valor da assinatura para rollback.',
-    };
-  }
+  // if (!(recurringValue > 0)) {
+  //   return {
+  //     success: false,
+  //     error: 'Não foi possível calcular o valor da assinatura para rollback.',
+  //   };
+  // }
 
   const put = await updateAsaasSubscriptionPlanAndDueDate(subId, {
     value: recurringValue,
@@ -301,8 +303,7 @@ export async function rollbackPendingUpgradeOnAsaas(params: {
     };
   }
 
-  const auditLine =
-    'Rollback executado: upgrade cancelado antes do pagamento';
+  const auditLine = 'Rollback executado: upgrade cancelado antes do pagamento';
   return {
     success: true,
     notes: appendBillingNotesBlock(row.notes, auditLine),
@@ -383,7 +384,10 @@ export async function cancelUpgradeRequest(
       })
       .eq('id', userId);
     if (profileErr) {
-      console.error('[billing] cancelUpgradeRequest profile restore:', profileErr);
+      console.error(
+        '[billing] cancelUpgradeRequest profile restore:',
+        profileErr,
+      );
       return {
         success: false,
         error: 'Não foi possível restaurar o plano no perfil após o rollback.',

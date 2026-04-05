@@ -122,6 +122,9 @@ describe('scheduleDowngradeChange', () => {
       ...authOk,
       profile: { plan_key: 'START', full_name: 'User' },
     } as never);
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn().mockReturnValue(makeSelectSingle(null)),
+    } as never);
     const result = await scheduleDowngradeChange(payload);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/fluxo normal/i);
@@ -132,6 +135,7 @@ describe('scheduleDowngradeChange', () => {
     const supabase = {
       from: vi
         .fn()
+        .mockReturnValueOnce(makeSelectSingle(null)) // pendingDowngradeBlock
         .mockReturnValueOnce(makeSelectSingle([{ id: 'approved', processed_at: daysAgo(10), billing_period: 'monthly', amount_final: 79, notes: null, asaas_subscription_id: 'sub_curr', plan_key_requested: 'PRO' }]))
         .mockReturnValueOnce(makeSelectSingle({ id: 'pending-change-1' })),
     } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -147,6 +151,7 @@ describe('scheduleDowngradeChange', () => {
     const supabase = {
       from: vi
         .fn()
+        .mockReturnValueOnce(makeSelectSingle(null)) // pendingDowngradeBlock
         .mockReturnValueOnce(makeSelectSingle([{ id: 'approved-1', processed_at: daysAgo(10), billing_period: 'monthly', amount_final: 79, notes: null, asaas_subscription_id: 'sub_curr', plan_key_requested: 'PRO' }]))
         .mockReturnValueOnce(makeSelectSingle(null))
         .mockReturnValueOnce(makeSelectSingle({ asaas_customer_id: 'cus_1' }))
@@ -177,6 +182,7 @@ describe('scheduleDowngradeChange', () => {
     const supabase = {
       from: vi
         .fn()
+        .mockReturnValueOnce(makeSelectSingle(null)) // pendingDowngradeBlock
         .mockReturnValueOnce(makeSelectSingle([{ id: 'approved-1', processed_at: daysAgo(10), billing_period: 'monthly', amount_final: 79, notes: null, asaas_subscription_id: 'sub_curr', plan_key_requested: 'PRO' }]))
         .mockReturnValueOnce(makeSelectSingle(null))
         .mockReturnValueOnce(makeSelectSingle({ asaas_customer_id: 'cus_1' }))

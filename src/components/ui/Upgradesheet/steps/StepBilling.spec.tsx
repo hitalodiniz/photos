@@ -44,6 +44,7 @@ let ctxState: {
   selectedPlan: string;
   segment: string;
   planKey: string;
+  couponCode: string;
   profile: { is_trial?: boolean } | null;
   creditCard: {
     credit_card_holder_name: string;
@@ -68,6 +69,7 @@ const setUpgradeCalculation = vi.fn();
 const setCreditCard = vi.fn();
 const setIsCalculationLoading = vi.fn();
 const setCanProceedBilling = vi.fn();
+const setCouponCode = vi.fn();
 
 function makeCtx(overrides: Partial<typeof ctxState> = {}): typeof ctxState {
   return {
@@ -79,6 +81,7 @@ function makeCtx(overrides: Partial<typeof ctxState> = {}): typeof ctxState {
     selectedPlan: 'PRO',
     segment: 'PHOTOGRAPHER',
     planKey: 'START',
+    couponCode: '',
     profile: null,
     creditCard: {
       credit_card_holder_name: '',
@@ -105,6 +108,7 @@ vi.mock('../UpgradeSheetContext', () => ({
     setIsCalculationLoading,
     canProceedBilling: true,
     setCanProceedBilling,
+    setCouponCode,
   }),
 }));
 
@@ -363,7 +367,7 @@ describe('StepBilling — PIX mensal sem desconto extra', () => {
     const formSection = screen.getByRole('region', {
       name: /forma de pagamento/i,
     });
-    expect(formSection).toHaveTextContent(/semestral e no anual/i);
+    expect(formSection).toHaveTextContent(/semestral\/anual/i);
   });
 });
 

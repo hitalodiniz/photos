@@ -25,6 +25,7 @@ import {
   formatDatePtBr,
 } from '@/components/ui/Upgradesheet/utils';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { usePlan } from '@/core/context/PlanContext';
 
 type StepDoneStatus = 'pending' | 'approved' | 'rejected' | 'overdue';
 const WHATSAPP_SUPPORT = '5531993522018';
@@ -80,7 +81,11 @@ function SecurityBadge() {
 }
 
 function SupportLink() {
-  const msg = encodeURIComponent('Ola! Preciso de ajuda com meu pagamento.');
+  const { profile } = usePlan();
+  const username = profile?.username ?? 'desconhecido';
+  const msg = encodeURIComponent(
+    `Olá! Preciso de ajuda com a minha assinatura, meu nome de usuário é ${username}.`,
+  );
   return (
     <a
       href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${msg}`}

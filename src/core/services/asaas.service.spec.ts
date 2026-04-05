@@ -22,6 +22,10 @@ vi.mock('@/core/services/auth-context.service', () => ({
 vi.mock('@/core/services/billing.service', () => ({
   cancelUpgradeRequest: vi.fn().mockResolvedValue({ success: true }),
 }));
+vi.mock('@/core/services/theme-rollback.service', () => ({
+  applyThemeRollbackForLowerPlan: vi.fn().mockResolvedValue(undefined),
+  restoreGalleryThemesFromLastPaid: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('./asaas/api/subscriptions', async () => {
   const actual = await vi.importActual('./asaas/api/subscriptions');
   return {

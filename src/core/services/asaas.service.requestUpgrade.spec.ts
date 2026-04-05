@@ -33,6 +33,7 @@ const makeSelect = (data: unknown, error: unknown = null) => {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
     gte: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -130,6 +131,8 @@ function mockAuth(override = {}) {
 
 function makeSupabaseForUpgrade(insertData: unknown = { id: 'req-new' }, insertError: unknown = null) {
   const fromMock = vi.fn()
+    .mockReturnValueOnce(makeSelect(null))      // pendingDowngradeBlock
+    .mockReturnValueOnce(makeSelect(null))      // overdueBlock
     .mockReturnValueOnce(makeSelect(null))      // getPendingUpgradeRequest (retorna null = sem pendência)
     // getCurrentActiveRequest é SKIPPED se plan_key='FREE' (padrão do mockAuth).
     // Se algum teste usar plano != FREE, precisará ajustar este mock.
@@ -585,6 +588,10 @@ describe('requestUpgrade — Erros e validações', () => {
     vi.stubEnv('ASAAS_API_KEY', 'test-key');
     mockAuth();
 
+    const supabase = makeSupabaseForUpgrade();
+    vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =
+      vi.fn().mockResolvedValue(supabase);
+
     const result = await requestUpgrade({ ...base, plan_key_requested: 'FREE' } as never);
 
     expect(result.success).toBe(false);
@@ -646,8 +653,8 @@ describe('requestUpgrade — Falhas intermediárias', () => {
     const allCalls = (supabase.from as ReturnType<typeof vi.fn>).mock.calls.map(
       (c: string[]) => c[0],
     );
-    // tb_upgrade_requests chamado apenas no início (getPendingUpgradeRequest), não no final (insert)
-    expect(allCalls.filter(c => c === 'tb_upgrade_requests')).toHaveLength(1);
+    // tb_upgrade_requests chamado apenas no início (getPendingDowngrade, getOverdue, getPendingUpgradeRequest), não no final (insert)
+    expect(allCalls.filter(c => c === 'tb_upgrade_requests')).toHaveLength(3);
   });
 
   it('createAsaasSubscription falha: retorna erro sem INSERT no banco', async () => {
@@ -675,8 +682,8 @@ describe('requestUpgrade — Falhas intermediárias', () => {
     const allCalls = (supabase.from as ReturnType<typeof vi.fn>).mock.calls.map(
       (c: string[]) => c[0],
     );
-    // tb_upgrade_requests chamado apenas no início (getPendingUpgradeRequest), não no final (insert)
-    expect(allCalls.filter(c => c === 'tb_upgrade_requests')).toHaveLength(1);
+    // tb_upgrade_requests chamado apenas no início (getPendingDowngrade, getOverdue, getPendingUpgradeRequest), não no final (insert)
+    expect(allCalls.filter(c => c === 'tb_upgrade_requests')).toHaveLength(3);
   });
 
   it('INSERT tb_upgrade_requests falha: retorna erro para o usuário', async () => {
@@ -736,12 +743,14 @@ describe('requestUpgrade — rejeita quando há pending_change ativo', () => {
     };
     const fromMock = vi
       .fn()
-      .mockReturnValueOnce(makeSelect(pendingNormal))
-      .mockReturnValueOnce(makeUpdate())
-      .mockReturnValueOnce(makeUpsert())
-      .mockReturnValueOnce(makeSelect({ asaas_customer_id: null }))
-      .mockReturnValueOnce(makeUpdate())
-      .mockReturnValueOnce(makeInsert({ id: 'new-upgrade' }, null));
+      .mockReturnValueOnce(makeSelect(null)) // pendingDowngradeBlock
+      .mockReturnValueOnce(makeSelect(null)) // overdueBlock
+      .mockReturnValueOnce(makeSelect(pendingNormal)) // getPendingUpgradeRequest
+      .mockReturnValueOnce(makeUpdate()) // cancelPendingUpgradeInAsaasAndDb -> update tb_upgrade_requests
+      .mockReturnValueOnce(makeUpsert()) // upsert tb_billing_profiles
+      .mockReturnValueOnce(makeSelect({ asaas_customer_id: null })) // select asaas_customer_id
+      .mockReturnValueOnce(makeUpdate()) // update asaas_customer_id
+      .mockReturnValueOnce(makeInsert({ id: 'new-upgrade' }, null)); // insert tb_upgrade_requests
     vi.mocked(await import('@/lib/supabase.server')).createSupabaseServerClient =
       vi.fn().mockResolvedValue({ from: fromMock });
     const result = await requestUpgrade(basePayload as never);
