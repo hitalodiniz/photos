@@ -10,11 +10,25 @@ import {
   X,
   Layout,
   Link,
+  Ban,
+  FileText,
+  ShieldCheck,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import AuthButton from '../auth/AuthButton';
 import { useSegment } from '@/hooks/useSegment';
+
+/** WhatsApp: 31 99352-2018 (BR) → E.164 sem espaços */
+const EDITORIAL_WHATSAPP_E164 = '5531993522018';
+
+function getEditorialWhatsAppHref(): string {
+  const title = process.env.NEXT_PUBLIC_TITLE_DEFAULT?.trim() ?? '';
+  const message = title
+    ? `Olá, vim do app ${title} e gostaria de obter mais informações.`
+    : 'Olá, vim do app e gostaria de obter mais informações.';
+  return `https://wa.me/${EDITORIAL_WHATSAPP_E164}?text=${encodeURIComponent(message)}`;
+}
 
 export default function EditorialToolbar() {
   const router = useRouter();
@@ -70,15 +84,17 @@ export default function EditorialToolbar() {
         <div className="flex items-center">
           <div className="hidden md:flex items-center gap-5 px-4 border-r border-white/10">
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/appsuagaleria/"
               target="_blank"
+              rel="noopener noreferrer"
               className="text-white"
             >
               <Instagram className="w-4 h-4" />
             </a>
             <a
-              href="https://wa.me/seu-numero"
+              href={getEditorialWhatsAppHref()}
               target="_blank"
+              rel="noopener noreferrer"
               className="text-white"
             >
               <WhatsAppIcon className="w-4 h-4" />
@@ -201,31 +217,49 @@ export default function EditorialToolbar() {
               <div className="flex items-center gap-3">
                 <WhatsAppIcon className="w-3 h-3" />
                 <span className="text-white text-[10px] font-semibold uppercase tracking-widest">
-                  Google Drive™ Partner
+                  Google Drive™
                 </span>
               </div>
             </div>
 
             <div className="space-y-4 px-1 pb-4">
               <div className="flex flex-col gap-3">
-                <Link
+                <a
                   href="/privacidade"
-                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors group"
                 >
+                  <ShieldCheck
+                    size={12}
+                    className="text-gold/70 group-hover:text-gold transition-colors"
+                  />
                   Política de Privacidade
-                </Link>
-                <Link
+                </a>
+
+                <a
                   href="/termos"
-                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors group"
                 >
+                  <FileText
+                    size={12}
+                    className="text-gold/70 group-hover:text-gold transition-colors"
+                  />
                   Termos de Uso
-                </Link>
-                <Link
+                </a>
+
+                <a
                   href="/politica-cancelamento"
-                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors group"
                 >
+                  <Ban
+                    size={12}
+                    className="text-gold/70 group-hover:text-gold transition-colors"
+                  />
                   Política de Cancelamento
-                </Link>
+                </a>
               </div>
             </div>
           </div>

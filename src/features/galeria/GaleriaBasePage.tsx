@@ -126,7 +126,7 @@ export default async function GaleriaBasePage({
           <div className="max-w-[1600px] mx-auto px-6 md:px-12">
             {/* CABEÇALHO CENTRALIZADO */}
             <div className="text-left mb-8">
-              <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic mb-8">
+              <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic mb-2">
                 Esta galeria não está mais acessível.
               </h2>
             </div>
@@ -215,21 +215,14 @@ export default async function GaleriaBasePage({
         }
       >
         {/* 🎯 SEÇÃO BRANCA DE CONTEÚDO */}
-        <section className="w-full bg-white py-10 shadow-sm border-y border-slate-100">
+        <section className="w-full bg-white ">
           <div className="max-w-[1600px] mx-auto px-6 md:px-12">
             {/* CABEÇALHO CENTRALIZADO */}
-            <div className="text-left mb-14">
-              <p className="text-gold text-xs uppercase tracking-[0.3em] font-semibold mb-6">
-                Galeria Temporariamente Bloqueada
-              </p>
-              <h2 className="text-3xl md:text-4xl font-semibold text-petroleum italic mb-8">
-                O link desta galeria expirou
-              </h2>
-
+            <div className="text-left mb-6 -pt-6">
               <div className="flex items-center justify-center gap-3 bg-slate-50 border border-slate-200 px-6 py-3 rounded-full w-fit mx-auto shadow-sm">
-                <Calendar size={16} className="text-gold" />
-                <p className="text-[10px] text-petroleum uppercase tracking-widest font-bold whitespace-nowrap">
-                  Expirou em{' '}
+                <Calendar size={18} className="text-gold" />
+                <p className="text-[14px] text-petroleum uppercase tracking-widest font-semibold whitespace-nowrap">
+                  O link desta galeria expirou em{' '}
                   <span className="text-gold">
                     {new Date(galeriaData.expires_at).toLocaleDateString(
                       'pt-BR',
@@ -240,7 +233,7 @@ export default async function GaleriaBasePage({
             </div>
 
             {/* GRID DE OPÇÕES */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Opção 1: Contatar Profissional */}
               {galeriaData.photographer?.phone_contact && (
                 <EditorialCard
@@ -289,8 +282,6 @@ export default async function GaleriaBasePage({
             </div>
           </div>
         </section>
-
-        <Footer />
       </EditorialView>
     );
   }

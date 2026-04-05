@@ -37,6 +37,11 @@ import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { OverdueBadge } from '../dashboard/OverdueBadge';
 import { fetchOverdueBadgeData } from '@/actions/billing.actions';
 
+/** /planos em URL absoluta (apex em NEXT_PUBLIC_BASE_URL — sem subdomínio). */
+const PLANOS_ABSOLUTE_URL = `${(
+  process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+).replace(/\/$/, '')}/planos`;
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -327,7 +332,7 @@ export default function Navbar() {
                             type="button"
                             onClick={() => {
                               setTrialOpen(false);
-                              window.open('/planos', '_blank');
+                              window.open(PLANOS_ABSOLUTE_URL, '_blank');
                             }}
                             className="btn-secondary-white w-full flex items-center justify-center gap-2 px-2 text-[10px]"
                           >

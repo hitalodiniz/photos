@@ -24,7 +24,7 @@ export const SEGMENT_DICTIONARY: Record<SegmentType, SegmentDictionary> = {
     plural: 'fotógrafos',
     item: 'foto',
     items: 'fotos',
-    identity: 'uma Galeria Profissional',
+    identity: 'Sua Vitrine Profissional',
     segment_icon: Camera,
     site_name: 'Sua Galeria',
     site_description:
