@@ -13,8 +13,7 @@ import { PublicGaleriaCard } from './PublicGaleriaCard';
 import { GaleriaFooter } from '@/components/galeria';
 import { usePlan } from '@/core/context/PlanContext';
 import { getProfilePermission } from '@/core/utils/plan-helpers';
-import { BrandWatermark } from '../ui/BrandWatermark';
-import { useSegment } from '@/hooks/useSegment';
+
 import { GALLERY_CATEGORIES } from '@/core/config/categories';
 import { Profile } from '@/core/types/profile';
 import { ThemeKey } from '../ui/ThemeSelector';
@@ -443,7 +442,6 @@ export default function ProfileContent({
         galeria={footerGaleria}
         photographer={footerPhotographer}
       />
-      <BrandWatermark />
     </div>
   );
 }

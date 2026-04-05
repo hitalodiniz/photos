@@ -345,19 +345,11 @@ export default async function GaleriaBasePage({
     // Continua a execução normalmente
   }
 
+  console.log('error', error);
   if (error && error !== 'TOKEN_NOT_FOUND') {
     return (
       <GoogleAuthError
         errorType={error}
-        photographerName={galeriaData.photographer_name || 'o autor'}
-      />
-    );
-  }
-
-  if (!photos || photos.length === 0) {
-    return (
-      <GoogleAuthError
-        errorType={error === 'TOKEN_NOT_FOUND' ? null : error}
         photographerName={galeriaData.photographer_name || 'o autor'}
       />
     );

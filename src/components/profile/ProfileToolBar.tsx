@@ -242,7 +242,7 @@ export const ProfileToolBar = ({
                       )}
 
                       {/* CHEVRON desktop — dentro do botão com borda */}
-                      {(cities.length > 0 || specialties.length > 0) && (
+                      {barSpecs.length > 0 && (
                         <ChevronDown
                           size={16}
                           className={`transition-transform duration-300 pub-bar-icon group-hover:pub-bar-accent ${

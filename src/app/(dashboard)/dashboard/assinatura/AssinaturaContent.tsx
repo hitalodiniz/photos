@@ -1232,7 +1232,7 @@ export default function AssinaturaContent({
       <RelatorioBasePage
         title="Minha assinatura"
         onBack={() => router.push('/dashboard')}
-        footerStatusText={`Plano ${planDisplayName(planKey)}`}
+        footerStatusText={`Plano ${planDisplayName(planKeyFromProfile)}`}
       >
         <div className="max-w-[1600px] flex flex-col lg:flex-row gap-4">
           <aside className="w-full lg:w-[280px] space-y-3 shrink-0">
@@ -1242,7 +1242,7 @@ export default function AssinaturaContent({
                 Minha assinatura
               </span>
               <h2 className="text-[15px] font-semibold uppercase text-petroleum leading-tight">
-                Plano {planDisplayName(planKey)}
+                Plano {planDisplayName(planKeyFromProfile)}
                 {profile.is_trial && (
                   <span className="ml-2 px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20 text-[10px] font-semibold text-gold align-middle">
                     Teste Grátis
@@ -1618,7 +1618,7 @@ export default function AssinaturaContent({
           isRollbackPendingUpgradeCancel &&
           latestPendingRequest?.plan_key_requested
             ? planDisplayName(latestPendingRequest.plan_key_requested)
-            : planDisplayName(planKey)
+            : planDisplayName(planKeyFromProfile)
         }
         isLoading={cancelLoading}
         freeMaxGalleries={PERMISSIONS_BY_PLAN['FREE'].maxGalleriesHardCap ?? 3}
