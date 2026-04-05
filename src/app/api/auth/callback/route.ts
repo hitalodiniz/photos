@@ -38,36 +38,103 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { addSecondsToSaoPauloIso } from '@/core/utils/date-time';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
+  const fromClient = requestUrl.searchParams.get('from_client') === '1';
   const cookieStore = await cookies();
+
+  console.log('🔐 [AUTH CALLBACK] Iniciando...', {
+    code: code?.substring(0, 10),
+    from_client: fromClient,
+  });
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  const finalCookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookieOptions: {
+        domain: finalCookieDomain,
+        path: '/',
+        sameSite: 'lax',
+        secure: isProduction,
+      },
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const cookieOptions: any = {
+              ...options,
+              path: '/',
+              sameSite: 'lax' as const,
+              secure: isProduction,
+              domain: finalCookieDomain,
+            };
+            cookieStore.set(name, value, cookieOptions);
+          });
+        },
+      },
+    },
+  );
+
+  // Fluxo alternativo: sessão já definida no cliente (hash na raiz → /auth/callback → setSession → redirect aqui)
+  if (fromClient) {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      console.error('[auth/callback] from_client=1 mas sessão ausente:', sessionError?.message);
+      return NextResponse.redirect(new URL('/auth/login?error=auth_failed', request.url));
+    }
+    const baseRedirectUrl = new URL('/dashboard', request.url);
+    const { user, provider_refresh_token, provider_token, expires_in } = session;
+    const sessionAny = session as any;
+    const alternativeRefreshToken = sessionAny?.provider_refresh_token || sessionAny?.providerRefreshToken;
+
+    if (user?.id) {
+      const updates: any = {};
+      const refreshTokenToSave = provider_refresh_token || alternativeRefreshToken;
+      const isValidGoogleRefreshToken =
+        refreshTokenToSave &&
+        (refreshTokenToSave.startsWith('1//0') || refreshTokenToSave.length > 30);
+      if (refreshTokenToSave && isValidGoogleRefreshToken) updates.google_refresh_token = refreshTokenToSave;
+      if (provider_token) {
+        updates.google_access_token = provider_token;
+        const expiresInSeconds = expires_in || 3600;
+        updates.google_token_expires_at =
+          addSecondsToSaoPauloIso(expiresInSeconds);
+      }
+      if (provider_refresh_token || provider_token) updates.google_auth_status = 'active';
+      if (Object.keys(updates).length > 0) {
+        await supabase
+          .from('tb_profiles')
+          .update(updates)
+          .eq('id', user.id)
+          .select('id');
+      }
+    }
+    return NextResponse.redirect(baseRedirectUrl);
+  }
 
   if (!code) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  // 🎯 CONSISTÊNCIA: Usa o mesmo domínio do cliente e do servidor
-  // Se NEXT_PUBLIC_COOKIE_DOMAIN estiver configurado (ex: para subdomínios), usamos ele.
-  // Caso contrário, usamos undefined (padrão seguro para domínio único).
-  const finalCookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
-
   // 🎯 CRÍTICO: Lê todos os cookies ANTES de criar o cliente Supabase
-  // Isso força o Next.js a ler os cookies do request, incluindo o code verifier
   const allCookies = cookieStore.getAll();
 
   // 🎯 DEBUG: Log detalhado dos cookies recebidos
-  if (isProduction) {
-    console.log('[auth/callback] 📋 Cookies recebidos no callback:', {
-      totalCookies: allCookies.length,
-      cookieNames: allCookies.map((c) => c.name),
-      requestUrl: requestUrl.toString(),
-      requestHost: requestUrl.host,
-    });
-  }
+  // if (isProduction) {
+  //   console.log('[auth/callback] 📋 Cookies recebidos no callback:', {
+  //     totalCookies: allCookies.length,
+  //     cookieNames: allCookies.map((c) => c.name),
+  //     requestUrl: requestUrl.toString(),
+  //     requestHost: requestUrl.host,
+  //   });
+  // }
 
   // 🎯 DEBUG: Verifica se o code verifier cookie está presente
   // O Supabase SSR usa o padrão: sb-<project-id>-auth-token-code-verifier
@@ -83,52 +150,23 @@ export async function GET(request: Request) {
       requestHost: requestUrl.host,
       cookieDomain: finalCookieDomain || 'não configurado',
     });
-  } else if (isProduction) {
-    console.log('[auth/callback] ✅ Code verifier cookie encontrado:', {
-      cookieName: codeVerifierCookie.name,
-      hasValue: !!codeVerifierCookie.value,
-      valueLength: codeVerifierCookie.value?.length || 0,
-    });
   }
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      // 🎯 COOKIE OPTIONS: Deve ser igual ao cliente para garantir que o code verifier seja encontrado
-      cookieOptions: {
-        domain: finalCookieDomain,
-        path: '/',
-        sameSite: 'lax', // 'lax' é suficiente quando não há redirecionamentos cross-site
-        secure: isProduction,
-      },
-      cookies: {
-        getAll: () => {
-          // 🎯 GARANTE QUE TODOS OS COOKIES SEJAM RETORNADOS
-          // Isso é crítico para o PKCE code verifier ser encontrado
-          return cookieStore.getAll();
-        },
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            // 🎯 USA AS MESMAS OPÇÕES DO COOKIE OPTIONS ACIMA
-            // Isso garante consistência entre cliente e servidor
-            const cookieOptions: any = {
-              ...options,
-              path: '/',
-              sameSite: 'lax' as const, // 'lax' é suficiente quando não há redirecionamentos cross-site
-              secure: isProduction,
-              domain: finalCookieDomain,
-            };
-
-            cookieStore.set(name, value, cookieOptions);
-          });
-        },
-      },
-    },
-  );
+  // } else if (isProduction) {
+  //   console.log('[auth/callback] ✅ Code verifier cookie encontrado:', {
+  //     cookieName: codeVerifierCookie.name,
+  //     hasValue: !!codeVerifierCookie.value,
+  //     valueLength: codeVerifierCookie.value?.length || 0,
+  //   });
+  // }
 
   // 1. TROCA DE CÓDIGO (Grava cookies de sessão no domínio correto)
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+  console.log('🔐 [AUTH CALLBACK] Exchange resultado:', {
+    hasSession: !!data.session,
+    userId: data.session?.user?.id,
+    error: error?.message,
+  });
 
   // 2. CHECAGEM DE ERRO (PKCE / Credenciais)
   if (error || !data.session) {
@@ -262,9 +300,8 @@ export async function GET(request: Request) {
 
       // Calcula a expiração (expires_in costuma ser 3600 segundos para o Google)
       const expiresInSeconds = expires_in || 3600;
-      updates.google_token_expires_at = new Date(
-        Date.now() + expiresInSeconds * 1000,
-      ).toISOString();
+      updates.google_token_expires_at =
+        addSecondsToSaoPauloIso(expiresInSeconds);
       // console.log(`[auth/callback] ✅ Access token encontrado e será salvo para userId: ${user.id}`);
     } else {
       // console.warn(`[auth/callback] ⚠️ Access token NÃO encontrado na sessão para userId: ${user.id}`);
@@ -356,35 +393,27 @@ export async function GET(request: Request) {
 
     if (!hasValidRefreshToken || isTokenRevokedOrExpired) {
       needsConsent = true;
-      // console.log('[auth/callback] ⚠️ Refresh token não encontrado ou inválido após login');
-      // console.log('[auth/callback] Redirecionando com needsConsent=true para mostrar alerta ao usuário');
+      console.log(
+        '[auth/callback] ⚠️ Refresh token não encontrado ou inválido após login',
+      );
+      console.log(
+        '[auth/callback] Redirecionando com needsConsent=true para mostrar alerta ao usuário',
+      );
     } else {
-      // console.log('[auth/callback] ✅ Refresh token válido encontrado no banco');
+      console.log(
+        '[auth/callback] ✅ Refresh token válido encontrado no banco',
+      );
     }
   }
 
   // 5. REDIRECIONAMENTO FINAL
-  // Se precisa de consent, redireciona com parâmetro para mostrar alerta
-  const redirectUrl = new URL('/dashboard', request.url);
+  // Se precisa de consent, redireciona para o dashboard com needsConsent=true para mostrar o alerta.
+  // O usuário permanece logado e pode clicar em "Conectar" no alerta ou no Sidebar para abrir o fluxo com prompt=consent.
+  const baseRedirectUrl = new URL('/dashboard', request.url);
   if (needsConsent) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
-
-    // Monta a URL do Google OAuth com prompt=consent direto via Supabase
-    const params = new URLSearchParams({
-      provider: 'google',
-      scopes:
-        'email profile openid https://www.googleapis.com/auth/drive.readonly',
-      redirect_to: `${baseUrl}/api/auth/callback`,
-      'query_params[access_type]': 'offline',
-      'query_params[prompt]': 'consent',
-    });
-
-    return NextResponse.redirect(
-      `${supabaseUrl}/auth/v1/authorize?${params.toString()}`,
-    );
+    baseRedirectUrl.searchParams.set('needsConsent', 'true');
+    return NextResponse.redirect(baseRedirectUrl);
   }
 
-  return NextResponse.redirect(redirectUrl);
+  return NextResponse.redirect(baseRedirectUrl);
 }

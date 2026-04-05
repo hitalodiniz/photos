@@ -299,6 +299,7 @@ describe('Profile Service', () => {
       const formData = new FormData();
       formData.append('username', 'novousuario');
       formData.append('full_name', 'Novo Usuário');
+      formData.append('phone_contact', '11999999999');
 
       const result = await upsertProfile(formData, mockSupabase);
 
@@ -318,6 +319,7 @@ describe('Profile Service', () => {
       const formData = new FormData();
       formData.append('username', mockUsername);
       formData.append('full_name', 'Hitalo Costa');
+      formData.append('phone_contact', '11999999999');
 
       await upsertProfile(formData, mockSupabase);
 
@@ -328,6 +330,7 @@ describe('Profile Service', () => {
       const formData = new FormData();
       formData.append('username', mockUsername);
       formData.append('full_name', 'Hitalo Costa');
+      formData.append('phone_contact', '11999999999');
 
       await upsertProfile(formData, mockSupabase);
 

@@ -88,15 +88,13 @@ export default function SpecialtySelect({
           className="w-full pl-4 pr-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium h-10 focus:border-gold outline-none appearance-none cursor-pointer transition-all"
         >
           <option value="" disabled hidden>
-            {hasOptions
-              ? '+ Adicionar especialidade'
-              : 'Todas selecionadas'}
+            {hasOptions ? '+ Adicionar especialidade' : 'Todas selecionadas'}
           </option>
 
           {availableDefaults.length > 0 && (
             <optgroup
               label="Especialidades Padrão"
-              className="text-[10px] uppercase font-bold text-slate-400"
+              className="text-[10px] uppercase font-semibold"
             >
               {availableDefaults.map((s) => (
                 <option key={s} value={s}>
@@ -109,7 +107,7 @@ export default function SpecialtySelect({
           {availableCustom.length > 0 && (
             <optgroup
               label="Minhas Personalizadas"
-              className="text-[10px] uppercase font-bold text-slate-400"
+              className="text-[10px] uppercase font-semibold"
             >
               {availableCustom.map((s) => (
                 <option key={s} value={s}>
@@ -119,16 +117,19 @@ export default function SpecialtySelect({
             </optgroup>
           )}
 
-          <option value="NEW" className="text-gold font-bold">
+          <option value="NEW" className="text-petroleum font-semibold">
             + Criar nova área...
           </option>
         </select>
       </div>
 
+      {/* 🎯 FIX: featureKey e scenarioType adicionados (antes estavam ausentes) */}
       <UpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
         featureName="Especialidades Personalizadas"
+        featureKey="canCustomCategories"
+        scenarioType="feature"
       />
 
       <BaseModal

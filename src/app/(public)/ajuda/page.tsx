@@ -10,24 +10,24 @@ export const metadata: Metadata = {
 };
 
 export default async function FAQPage() {
-  // Verifica autenticação
-  const resultProfile = await getProfileData();
+  // // Verifica autenticação
+  // const resultProfile = await getProfileData();
 
-  if (!resultProfile.success || !resultProfile.profile) {
-    redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
-    );
-  }
+  // if (!resultProfile.success || !resultProfile.profile) {
+  //   redirect(
+  //     resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
+  //   );
+  // }
 
-  const profile = resultProfile.profile;
+  // const profile = resultProfile.profile;
 
-  // Verifica se o perfil está completo
-  const isProfileComplete =
-    profile.full_name && profile.username && profile.mini_bio;
+  // // Verifica se o perfil está completo
+  // const isProfileComplete =
+  //   profile.full_name && profile.username && profile.mini_bio;
 
-  if (!isProfileComplete) {
-    redirect('/onboarding');
-  }
+  // if (!isProfileComplete) {
+  //   redirect('/onboarding');
+  // }
 
   return <FAQContent />;
 }

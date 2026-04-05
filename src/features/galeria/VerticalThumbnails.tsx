@@ -3,7 +3,7 @@ import React, { useRef, useEffect } from 'react';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 
 interface VerticalThumbnailsProps {
-  photos: Array<{ id: string | number }>;
+  photos: Array<{ id: string | number; type?: 'photo' | 'video'; width?: number; height?: number }>;
   activeIndex: number;
   onNavigateToIndex: (index: number) => void;
   isVisible: boolean;
@@ -74,7 +74,7 @@ export function VerticalThumbnails({
           return (
             <ThumbnailItem
               key={photo.id}
-              photoId={photo.id}
+              photo={photo}
               index={index}
               isActive={isActive}
               onClick={() => onNavigateToIndex(index)}
@@ -88,15 +88,19 @@ export function VerticalThumbnails({
 }
 
 interface ThumbnailItemProps {
-  photoId: string | number;
+  photo: { id: string | number; type?: 'photo' | 'video'; width?: number; height?: number };
   index: number;
   isActive: boolean;
   onClick: () => void;
 }
 
 const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
-  ({ photoId, index, isActive, onClick }, ref) => {
-    const validPhotoId = photoId ? String(photoId) : '';
+  ({ photo, index, isActive, onClick }, ref) => {
+    const validPhotoId = photo?.id ? String(photo.id) : '';
+    const aspectRatio =
+      photo?.type === 'video' && photo?.width && photo?.height && photo.width > 0
+        ? photo.width / photo.height
+        : 1;
 
     const { imgSrc, isLoading, handleError, handleLoad, imgRef } =
       useGoogleDriveImage({
@@ -117,9 +121,9 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
             : 'opacity-70 hover:opacity-100 hover:scale-105'
         }`}
         style={{
-          aspectRatio: '1',
+          aspectRatio: String(aspectRatio),
         }}
-        aria-label={`Ver foto ${index + 1}`}
+        aria-label={`Ver ${photo?.type === 'video' ? 'vídeo' : 'foto'} ${index + 1}`}
       >
         <div
           className={`relative w-full h-full rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 transition-all ${
@@ -137,7 +141,7 @@ const ThumbnailItem = React.forwardRef<HTMLButtonElement, ThumbnailItemProps>(
               ref={imgRef}
               src={imgSrc}
               alt={`Miniatura ${index + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               loading={index < 20 ? 'eager' : 'lazy'}
               draggable={false}
               onError={handleError}

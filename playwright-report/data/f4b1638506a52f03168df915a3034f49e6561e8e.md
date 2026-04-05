@@ -1,0 +1,431 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - button [ref=e5] [cursor=pointer]:
+          - img [ref=e6]
+        - generic [ref=e8]:
+          - link "Espaço das Galerias" [ref=e9] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e10]
+            - heading "Espaço das Galerias" [level=1] [ref=e13]
+          - generic [ref=e16]: Nova Galeria
+      - generic [ref=e17]:
+        - button [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+        - button "Avatar" [ref=e25] [cursor=pointer]:
+          - img "Avatar" [ref=e27]
+  - main [ref=e29]:
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e39]:
+                - img [ref=e41]
+                - heading "Modalidade" [level=3] [ref=e44]
+              - group [ref=e46]:
+                - generic [ref=e47]:
+                  - generic [ref=e49]:
+                    - generic [ref=e50]:
+                      - generic [ref=e51]:
+                        - img [ref=e52]
+                        - text: Tipo de galeria
+                      - generic [ref=e55]:
+                        - generic [ref=e57]: "?"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - strong: "Entrega de fotos e vídeos:"
+                                  - paragraph: Acesso exclusivo para o cliente contratante.
+                                - generic:
+                                  - strong: "Seleção de fotos e vídeos:"
+                                  - paragraph: O cliente seleciona as fotos e vídeos para tratamento e entrega final.
+                                - generic:
+                                  - strong: "Disponibilização de fotos e vídeos:"
+                                  - paragraph: Link público para visualização, sem um cliente específico.
+                    - generic [ref=e58]:
+                      - combobox [active] [ref=e59] [cursor=pointer]:
+                        - option "Entrega de fotos e vídeos" [selected]
+                        - option "Seleção de fotos e vídeos"
+                        - option "Disponibilização de fotos e vídeos"
+                      - generic:
+                        - img
+                  - generic [ref=e60]:
+                    - generic [ref=e61]:
+                      - img [ref=e62]
+                      - text: Cliente
+                    - textbox "Nome do cliente" [ref=e65]
+                  - generic [ref=e66]:
+                    - generic [ref=e67]:
+                      - img [ref=e68]
+                      - text: WhatsApp
+                    - textbox "(00) 00000-0000" [ref=e70]
+            - generic [ref=e71]:
+              - generic [ref=e73]:
+                - img [ref=e75]
+                - heading "Galeria & Sincronização" [level=3] [ref=e81]
+              - group [ref=e83]:
+                - generic [ref=e84]:
+                  - generic [ref=e85]:
+                    - generic [ref=e86]:
+                      - img [ref=e87]
+                      - text: Título
+                    - 'textbox "Ex: Wedding Day" [ref=e89]'
+                  - generic [ref=e90]:
+                    - generic [ref=e91]:
+                      - img [ref=e92]
+                      - text: Categoria
+                    - generic [ref=e95]:
+                      - combobox [ref=e96] [cursor=pointer]:
+                        - option "+ adicionar nova categoria..."
+                        - option "Academia / Fitness"
+                        - option "Acompanhamento Mensal"
+                        - option "Alimentos / Gastronomia"
+                        - option "Aniversário Adulto"
+                        - option "Aniversário Infantil"
+                        - option "Auto / Track Day"
+                        - option "Balada / Nightlife"
+                        - option "Batizado / Consagração"
+                        - option "Bodas / Renovação"
+                        - option "Boudoir / Sensual"
+                        - option "Casamento / Wedding"
+                        - option "Corporativo / Palestras"
+                        - option "Cosplay / Artístico"
+                        - option "Dança / Ballet"
+                        - option "Debutante / 15 Anos"
+                        - option "Ensaio Feminino"
+                        - option "Ensaio Masculino"
+                        - option "Esporte de Aventura"
+                        - option "Especialidades / Outros"
+                        - option "Família / Lifestyle"
+                        - option "Festa Temática"
+                        - option "Festival / Grandes Eventos"
+                        - option "Formatura / Colação"
+                        - option "Futebol / Esportes Coletivos"
+                        - option "Gastronomia / Culinária"
+                        - option "Gestante / Doce Espera"
+                        - option "Hipismo / Cavalos"
+                        - option "Imobiliário / Arquitetura"
+                        - option "Institucional / Equipe"
+                        - option "Interiores / Design"
+                        - option "Joias / Still"
+                        - option "Lifestyle / Casual"
+                        - option "Macro / Detalhes"
+                        - option "Moda / Editorial"
+                        - option "Motociclismo"
+                        - option "Natureza / Paisagem"
+                        - option "Newborn / Recém-Nascido"
+                        - option "Perfil Profissional"
+                        - option "Pet / Animais"
+                        - option "Pré-Wedding"
+                        - option "Produto / E-commerce"
+                        - option "Publicidade / Campanhas"
+                        - option "Religioso / Cultos"
+                        - option "Show / Concerto"
+                        - option "Skate / Street"
+                        - option "Smash the Cake"
+                        - option "Street Photography"
+                        - option "Surf / Praia"
+                        - option "Teatro / Espetáculo"
+                        - option "Viagem / Turismo"
+                      - generic:
+                        - img
+                - generic [ref=e97]:
+                  - generic [ref=e98]:
+                    - generic [ref=e99]:
+                      - img [ref=e100]
+                      - text: Data
+                    - textbox [ref=e102]
+                  - generic [ref=e103]:
+                    - generic [ref=e104]:
+                      - img [ref=e105]
+                      - text: Local
+                    - textbox "Cidade/UF" [ref=e108]
+            - generic [ref=e109]:
+              - generic [ref=e111]:
+                - img [ref=e113]
+                - heading "Privacidade" [level=3] [ref=e116]
+              - group [ref=e118]:
+                - generic [ref=e119]:
+                  - generic [ref=e120]:
+                    - generic [ref=e121]:
+                      - generic [ref=e122]:
+                        - img [ref=e123]
+                        - text: Acesso
+                      - generic [ref=e125]:
+                        - generic [ref=e127]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Acesso restrito
+                            - generic: Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar.
+                    - generic [ref=e128]:
+                      - generic [ref=e129]:
+                        - button "Público" [ref=e130] [cursor=pointer]
+                        - button "Privado" [ref=e131] [cursor=pointer]
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - textbox "PIN" [disabled]
+                            - button:
+                              - img
+                  - generic [ref=e132]:
+                    - generic [ref=e133]:
+                      - generic [ref=e134]:
+                        - img [ref=e135]
+                        - text: Expiração
+                      - generic [ref=e137]:
+                        - generic [ref=e139]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Expiração
+                            - generic: Se ativada, a galeria ficará indisponível para acesso após esta data.
+                    - textbox [ref=e141]
+                  - generic [ref=e142]:
+                    - generic [ref=e143]:
+                      - generic [ref=e144]:
+                        - img [ref=e145]
+                        - text: Listar no Perfil
+                      - generic [ref=e148]:
+                        - generic [ref=e150]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Listar no Perfil
+                            - generic: Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes.
+                    - button [ref=e151] [cursor=pointer]
+            - generic [ref=e153]:
+              - generic [ref=e155]:
+                - img [ref=e157]
+                - heading "Cadastro de visitante" [level=3] [ref=e162]
+              - group [ref=e164]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]:
+                    - generic [ref=e168]: Habilitar cadastro de visitante para visualizar a galeria
+                    - button "Habilitar cadastro de visitante para visualizar a galeria" [ref=e169] [cursor=pointer]
+                  - paragraph [ref=e171]: Aumente sua base de contatos exigindo dados básicos antes dos clientes visualizarem as fotos.
+            - generic [ref=e172]:
+              - generic [ref=e174]:
+                - img [ref=e176]
+                - heading "Design da Galeria" [level=3] [ref=e178]
+                - paragraph [ref=e179]: Personalize a experiência visual do visitante
+              - group [ref=e181]:
+                - generic [ref=e182]:
+                  - generic [ref=e183]:
+                    - generic [ref=e184]:
+                      - generic [ref=e185]:
+                        - img [ref=e186]
+                        - text: Foto fundo
+                      - generic [ref=e190]:
+                        - generic [ref=e192]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Foto de fundo
+                            - generic: Usa a foto selecionada como fundo da grade de fotos da página da galeria acessada pelo visitante.
+                    - button [ref=e193] [cursor=pointer]
+                  - generic [ref=e195]:
+                    - generic [ref=e196]:
+                      - img [ref=e197]
+                      - generic [ref=e203]: Cor fundo
+                      - generic [ref=e204]:
+                        - generic [ref=e206]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Cor de fundo
+                            - generic: Define a cor sólida do grid de fotos da página da galeria acessada pelo visitante.
+                    - generic [ref=e207]:
+                      - generic [ref=e208]:
+                        - button [ref=e209] [cursor=pointer]
+                        - button [ref=e210] [cursor=pointer]
+                        - button [ref=e211] [cursor=pointer]
+                      - generic [ref=e212]:
+                        - textbox [ref=e214] [cursor=pointer]: "#ffffff"
+                        - textbox [ref=e215]: "#ffffff"
+                  - generic [ref=e216]:
+                    - generic [ref=e217]:
+                      - img [ref=e218]
+                      - generic [ref=e220]: Grid
+                      - generic [ref=e221]:
+                        - generic [ref=e223]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Colunas do Grid
+                            - generic: "Ajuste o número de colunas por dispositivo: Mobile, Tablet e Desktop para otimizar a visualização."
+                    - generic [ref=e224]:
+                      - generic [ref=e225]:
+                        - img [ref=e226]
+                        - generic [ref=e228]:
+                          - combobox [ref=e229] [cursor=pointer]:
+                            - option "1"
+                            - option "2" [selected]
+                          - generic:
+                            - img
+                      - generic [ref=e230]:
+                        - img [ref=e231]
+                        - generic [ref=e233]:
+                          - combobox [ref=e234] [cursor=pointer]:
+                            - option "2"
+                            - option "3" [selected]
+                            - option "4"
+                            - option "5"
+                            - option "6"
+                          - generic:
+                            - img
+                      - generic [ref=e235]:
+                        - img [ref=e236]
+                        - generic [ref=e238]:
+                          - combobox [ref=e239] [cursor=pointer]:
+                            - option "3"
+                            - option "4" [selected]
+                            - option "5"
+                            - option "6"
+                            - option "8"
+                          - generic:
+                            - img
+            - generic [ref=e240]:
+              - generic [ref=e242]:
+                - img [ref=e244]
+                - heading "Interação & Experiência" [level=3] [ref=e247]
+                - paragraph [ref=e248]: Recursos para o visitante usar na galeria
+              - group [ref=e250]:
+                - generic [ref=e251]:
+                  - generic [ref=e252]:
+                    - generic [ref=e253]:
+                      - img [ref=e254]
+                      - generic [ref=e256]: Favoritos
+                      - generic [ref=e257]:
+                        - generic [ref=e259]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Sistema de Favoritos
+                            - generic: Permite que o visitante selecione fotos favoritas para baixar separadamente ou organizar sua seleção.
+                    - button [ref=e260] [cursor=pointer]
+                  - generic [ref=e261]:
+                    - generic [ref=e262]:
+                      - img [ref=e263]
+                      - generic [ref=e266]: Slideshow
+                      - generic [ref=e267]:
+                        - generic [ref=e269]: "?"
+                        - generic:
+                          - generic:
+                            - paragraph: Modo Slideshow
+                            - generic: Apresentação automática de fotos em tela cheia para uma experiência imersiva do cliente.
+                    - button [ref=e270] [cursor=pointer]
+          - generic [ref=e271]:
+            - generic [ref=e272]:
+              - generic [ref=e273]:
+                - img [ref=e274]
+                - heading "Google Drive" [level=3] [ref=e280]
+              - generic [ref=e281]:
+                - generic [ref=e282]:
+                  - img [ref=e283]
+                  - text: Vincular Pasta do Google Drive
+                - paragraph [ref=e289]:
+                  - text: Máximo de
+                  - strong [ref=e290]: "50"
+                  - text: vídeos por galeria de até
+                  - strong [ref=e291]: 200 MB
+                  - text: cada (por performance). Acima disso os vídeos não são listados e nem contados.
+                - generic [ref=e293]:
+                  - paragraph [ref=e294]: Nenhuma pasta selecionada
+                  - button "Vincular pasta do Drive e foto de capa" [ref=e297] [cursor=pointer]:
+                    - generic [ref=e298]:
+                      - img [ref=e299]
+                      - generic [ref=e301]: Vincular pasta do Drive e foto de capa
+              - generic [ref=e302]:
+                - generic [ref=e303]:
+                  - img [ref=e304]
+                  - text: Fotos de capa selecionadas (0/3)
+                - generic [ref=e309]:
+                  - img [ref=e310]
+                  - generic [ref=e314]: Aguardando seleção
+              - generic [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e318]:
+                    - img [ref=e319]
+                    - text: Renomear fotos (foto-001...)
+                  - generic [ref=e323]:
+                    - generic [ref=e325]: "?"
+                    - generic:
+                      - generic:
+                        - paragraph: Renomear fotos
+                        - generic: Se habilitado, padroniza o nome das fotos para "foto-1.jpg", "foto-2.jpg", etc. Desabilitado, usa os nomes originais das fotos.
+                - button [ref=e326] [cursor=pointer]
+            - generic [ref=e328]:
+              - generic [ref=e329]:
+                - img [ref=e330]
+                - heading "Tema Visual" [level=3] [ref=e333]
+              - generic [ref=e335]:
+                - button "Clássico ? Petróleo e champagne — o padrão elegante" [ref=e336] [cursor=pointer]:
+                  - generic [ref=e343]:
+                    - generic [ref=e344]:
+                      - paragraph [ref=e345]: Clássico
+                      - generic [ref=e349]: "?"
+                    - paragraph [ref=e350]: Petróleo e champagne — o padrão elegante
+                  - img [ref=e352]
+                - button "Dark Cinema ? Noir dramático com acentos dourados" [ref=e354] [cursor=pointer]:
+                  - generic [ref=e362]:
+                    - generic [ref=e363]:
+                      - paragraph [ref=e364]: Dark Cinema
+                      - generic [ref=e368]: "?"
+                    - paragraph [ref=e369]: Noir dramático com acentos dourados
+                - button "Editorial ? Branco absoluto, contraste máximo" [ref=e370] [cursor=pointer]:
+                  - generic [ref=e377]:
+                    - generic [ref=e378]:
+                      - paragraph [ref=e379]: Editorial
+                      - generic [ref=e383]: "?"
+                    - paragraph [ref=e384]: Branco absoluto, contraste máximo
+                - button "Natureza ? Bege areia, verde musgo e terracota" [ref=e385] [cursor=pointer]:
+                  - generic [ref=e392]:
+                    - generic [ref=e393]:
+                      - paragraph [ref=e394]: Natureza
+                      - generic [ref=e398]: "?"
+                    - paragraph [ref=e399]: Bege areia, verde musgo e terracota
+                - button "Noturno Luxo ? Azul noite profundo com dourado clássico" [ref=e400] [cursor=pointer]:
+                  - generic [ref=e408]:
+                    - generic [ref=e409]:
+                      - paragraph [ref=e410]: Noturno Luxo
+                      - generic [ref=e414]: "?"
+                    - paragraph [ref=e415]: Azul noite profundo com dourado clássico
+                - button "Gelo ? Gelo azulado, clean e contemporâneo" [ref=e416] [cursor=pointer]:
+                  - generic [ref=e423]:
+                    - generic [ref=e424]:
+                      - paragraph [ref=e425]: Gelo
+                      - generic [ref=e429]: "?"
+                    - paragraph [ref=e430]: Gelo azulado, clean e contemporâneo
+                - button "Platina ? Cinza frio, geométrico e atemporal" [ref=e431] [cursor=pointer]:
+                  - generic [ref=e438]:
+                    - generic [ref=e439]:
+                      - paragraph [ref=e440]: Platina
+                      - generic [ref=e444]: "?"
+                    - paragraph [ref=e445]: Cinza frio, geométrico e atemporal
+                - button "Blush ? Rosa nude e dourado suave" [ref=e446] [cursor=pointer]:
+                  - generic [ref=e453]:
+                    - generic [ref=e454]:
+                      - paragraph [ref=e455]: Blush
+                      - generic [ref=e459]: "?"
+                    - paragraph [ref=e460]: Rosa nude e dourado suave
+            - generic [ref=e461]:
+              - generic [ref=e462]:
+                - img [ref=e463]
+                - heading "links externos" [level=3] [ref=e466]
+              - button "Novo link" [ref=e468] [cursor=pointer]:
+                - img [ref=e469]
+                - text: Novo link
+        - generic [ref=e471]:
+          - generic [ref=e472]: Tudo salvo
+          - generic [ref=e473]:
+            - button "CANCELAR" [ref=e474] [cursor=pointer]
+            - button "CRIAR" [ref=e475] [cursor=pointer]:
+              - generic [ref=e476]:
+                - img [ref=e478]
+                - generic [ref=e482]: CRIAR
+  - button "Open Next.js Dev Tools" [ref=e488] [cursor=pointer]:
+    - img [ref=e489]
+  - alert [ref=e492]
+```

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import slugify from 'slugify';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 
 import {
   DrivePhoto,
@@ -42,11 +43,7 @@ import {
   createSupabaseServerClientReadOnly,
   createSupabaseAdmin,
 } from '@/lib/supabase.server';
-import {
-  PlanKey,
-  PERMISSIONS_BY_PLAN,
-  resolveGalleryLimitByPlan,
-} from '../config/plans';
+import { PlanKey, PERMISSIONS_BY_PLAN } from '../config/plans';
 import { syncUserGalleriesAction } from '@/actions/galeria.actions';
 import {
   extractGalleryFormData,
@@ -62,6 +59,7 @@ import { cache } from 'react';
 import { registerFolderWatch } from './drive-watch.service';
 import { getGoogleRefreshToken } from './profile.service';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
+import { createClient } from '@supabase/supabase-js';
 
 // =========================================================================
 // 2. SLUG ÚNICO POR DATA
@@ -105,8 +103,9 @@ export async function generateUniqueDatedSlug(
     safeTitle = safeTitle.replace(/-+$/, '');
   }
 
-  const datePart = dateStr.substring(0, 10).replace(/-/g, '/');
-  const baseSlug = `${username}/${datePart}/${safeTitle}`;
+  //const datePart = dateStr.substring(0, 10).replace(/-/g, '/');
+  //const baseSlug = `${username}/${datePart}/${safeTitle}`;
+  const baseSlug = `${username}/${safeTitle}`;
   // ---------------------------------------
 
   let uniqueSlug = baseSlug;
@@ -386,14 +385,17 @@ export async function updateGaleria(
  * 🎯 CACHE: Busca galerias do usuário logado com cache de 30 dias
  * O cache é limpo automaticamente via revalidateTag quando galerias são criadas/atualizadas
  *
- * 🎯 CORREÇÃO: Cria cliente Supabase ANTES do cache e usa createSupabaseClientForCache
- * dentro do cache para evitar erro de cookies dentro de unstable_cache
+ * 🎯 IMPERSONATE: Se options.impersonateUserId for passado e o usuário logado for admin,
+ * ignora auth.uid() e busca as galerias do targetUserId (modo suporte).
+ *
+ * @param supabaseClient - Cliente Supabase opcional
+ * @param options.impersonateUserId - UUID do usuário alvo (só aplicado se logado for admin)
  */
 export async function getGalerias(
   supabaseClient?: any,
+  options?: { impersonateUserId?: string },
 ): Promise<ActionResult<Galeria[]>> {
   // 🎯 PASSO 1: Autenticação e obtenção do userId FORA do cache
-  // Isso é necessário porque getAuthAndStudioIds usa cookies
   const {
     success,
     userId,
@@ -406,6 +408,14 @@ export async function getGalerias(
       error: authError || 'Usuário não autenticado.',
       data: [],
     };
+  }
+
+  let effectiveUserId = userId;
+  if (options?.impersonateUserId) {
+    const { profile } = await getAuthenticatedUser();
+    if (profile?.roles?.includes('admin')) {
+      effectiveUserId = options.impersonateUserId;
+    }
   }
 
   // 🎯 PASSO 2: Cache da busca de dados (sem cookies dentro)
@@ -442,9 +452,6 @@ export async function getGalerias(
           throw error;
         }
 
-        // 🎯 DEBUG: Verificação detalhada de leads
-        // console.log(`[getGalerias] userId: ${cachedUserId}, Found: ${data?.length || 0}`);
-
         // AJUSTE NO MAP: Usa a função formatGalleryData para garantir que o objeto photographer exista
         const galeriasFormatadas = (data || []).map((raw) =>
           formatGalleryData(raw as any, raw.photographer?.username || ''),
@@ -468,12 +475,12 @@ export async function getGalerias(
         };
       }
     },
-    [`user-galerias-${userId}`],
+    [`user-galerias-${effectiveUserId}`],
     {
       revalidate: GLOBAL_CACHE_REVALIDATE,
-      tags: [`user-galerias-${userId}`],
+      tags: [`user-galerias-${effectiveUserId}`],
     },
-  )(userId);
+  )(effectiveUserId);
 }
 
 // =========================================================================
@@ -787,7 +794,7 @@ export async function syncGaleriaPhotoCount(
       .from('tb_galerias')
       .update({
         photo_count: count,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeria.id)
       .eq('user_id', userId);
@@ -841,6 +848,7 @@ export async function syncGaleriaPhotoCountByGaleriaId(
     const photos = await listPhotosFromDriveFolder(
       row.drive_folder_id,
       accessToken,
+      { userId: row.user_id },
     );
     const count = photos?.length || 0;
 
@@ -848,7 +856,7 @@ export async function syncGaleriaPhotoCountByGaleriaId(
       .from('tb_galerias')
       .update({
         photo_count: count,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeriaId);
 
@@ -913,6 +921,7 @@ export async function getPublicProfileGalerias(
         .eq('user_id', profile.id)
         .eq('show_on_profile', true)
         .eq('is_archived', false)
+        .eq('auto_archived', false)
         .eq('is_deleted', false)
         .order('date', { ascending: false })
         .range(from, to);
@@ -1022,17 +1031,24 @@ async function updateGaleriaStatus(
 /**
  * ARQUIVAR: Alterna o estado de arquivamento
  * Se currentStatus for true (arquivada), tentará desarquivar (passa pela validação de limite).
+ * @param currentStatus - Deve ser (is_archived || auto_archived)
  */
 export async function toggleArchiveGaleria(id: string, currentStatus: boolean) {
+  // Se currentStatus é true, significa que ela ESTÁ arquivada e queremos VOLTAR (isUnarchiving)
   const isUnarchiving = currentStatus === true;
 
   const result = await updateGaleriaStatus(
     id,
-    { is_archived: !currentStatus },
-    isUnarchiving, // Valida limite apenas ao desarquivar
+    {
+      // Se estava arquivada (true), vira false. Se estava ativa (false), vira true.
+      is_archived: !currentStatus,
+      // SEMPRE resetamos o auto_archived para false ao interagir manualmente
+      auto_archived: false,
+    },
+    isUnarchiving, // Valida limite de plano apenas se estiver tentando trazer de volta (isUnarchiving = true)
   );
 
-  // Sincroniza após desarquivar
+  // Sincroniza cache após desarquivar (trazer de volta ao ar)
   if (result.success && isUnarchiving) {
     await syncUserGalleriesAction();
   }
@@ -1052,7 +1068,7 @@ export async function toggleShowOnProfile(id: string, currentStatus: boolean) {
 export async function moveToTrash(id: string) {
   return updateGaleriaStatus(id, {
     is_deleted: true,
-    deleted_at: new Date().toISOString(),
+    deleted_at: utcIsoFrom(nowFn()),
   });
 }
 
@@ -1199,7 +1215,8 @@ export async function getProfileListCount(userId: string): Promise<number> {
     .eq('user_id', userId)
     .eq('show_on_profile', true)
     .eq('is_deleted', false)
-    .eq('is_archived', false);
+    .eq('is_archived', false)
+    .eq('auto_archived', false);
 
   if (error) {
     console.error('[getProfileListCount] Erro:', error);
@@ -1227,6 +1244,7 @@ export async function archiveExceedingGalleries(
     .eq('user_id', userId)
     .eq('is_deleted', false)
     .eq('is_archived', false)
+    .eq('auto_archived', false)
     .order('date', { ascending: false });
 
   if (fetchError) throw fetchError;
@@ -1264,7 +1282,7 @@ export async function purgeOldDeletedGalleries(supabaseClient?: any) {
   const supabase = supabaseClient || (await createSupabaseServerClient());
 
   // Calcula a data de corte (30 dias atrás)
-  const cutoffDate = new Date();
+  const cutoffDate = nowFn();
   cutoffDate.setDate(cutoffDate.getDate() - 30);
 
   // 1. Busca galerias para exclusão (apenas para log e revalidação se necessário)
@@ -1272,7 +1290,7 @@ export async function purgeOldDeletedGalleries(supabaseClient?: any) {
     .from('tb_galerias')
     .select('id, user_id, slug')
     .eq('is_deleted', true)
-    .lt('deleted_at', cutoffDate.toISOString());
+    .lt('deleted_at', utcIsoFrom(cutoffDate));
 
   if (fetchError) throw fetchError;
 
@@ -1314,7 +1332,7 @@ export async function updateGaleriaTagsAction(
           typeof gallery_tags === 'string'
             ? JSON.parse(gallery_tags)
             : gallery_tags,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeria.id);
 
@@ -1354,6 +1372,7 @@ export const getProfileCategories = cache(async (userId: string) => {
         .eq('user_id', id)
         .eq('is_deleted', false)
         .eq('is_archived', false)
+        .eq('auto_archived', false)
         .eq('show_on_profile', true)
         .order('category');
 
@@ -1397,7 +1416,7 @@ export async function saveGaleriaSelectionAction(
         // Garante que estamos enviando um array limpo
         selection_ids: Array.isArray(selectionIds) ? selectionIds : [],
         selection_metadata: metadata,
-        updated_at: new Date().toISOString(),
+        updated_at: utcIsoFrom(nowFn()),
       })
       .eq('id', galeria.id)
       .select(); // Adicionamos select para confirmar que houve alteração
@@ -1428,4 +1447,45 @@ export async function saveGaleriaSelectionAction(
     console.error('[saveGaleriaSelectionAction] Erro Crítico:', error.message);
     return { success: false, error: error.message };
   }
+}
+
+export interface PhotographerPoolStats {
+  /** Soma de photo_count de todas as galerias ativas do fotógrafo */
+  totalPhotosUsed: number;
+  /** Número de galerias ativas (não arquivadas/deletadas) */
+  activeGalleryCount: number;
+}
+
+/**
+ * Busca as estatísticas de pool do fotógrafo em uma única query.
+ * Usado por GaleriaFormPage para alimentar os alertas de cota dinâmica
+ * em GaleriaDriveSection via calcEffectiveMaxGalleries().
+ *
+ * @param profileId  - ID do perfil do fotógrafo (profile.id = user_id nas galerias)
+ */
+export async function getPhotographerPoolStats(
+  profileId: string,
+): Promise<PhotographerPoolStats> {
+  const supabase = await createSupabaseClientForCache();
+
+  const { data, error } = await supabase
+    .from('tb_galerias')
+    .select('photo_count')
+    .eq('user_id', profileId)
+    .eq('is_deleted', false)
+    .eq('is_archived', false)
+    .eq('auto_archived', false); // exclui galerias arquivadas/excluídas
+
+  if (error) {
+    console.error('[getPhotographerPoolStats]', error.message);
+    // Retorna zeros para não bloquear o formulário em caso de falha
+    return { totalPhotosUsed: 0, activeGalleryCount: 0 };
+  }
+
+  const rows = data ?? [];
+
+  return {
+    totalPhotosUsed: rows.reduce((sum, row) => sum + (row.photo_count ?? 0), 0),
+    activeGalleryCount: rows.length,
+  };
 }

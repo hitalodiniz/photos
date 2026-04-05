@@ -7,9 +7,15 @@ import { NavigationProvider } from '@/components/providers/NavigationProvider';
 import { SidebarProvider } from '@/components/providers/SidebarProvider';
 import { CookieBanner } from '@/components/ui';
 import { AuthProvider } from '@photos/core-auth';
+import { PlanProvider } from '@/core/context/PlanContext';
+import {
+  getProfileData,
+  getProfileDataFresh,
+} from '@/core/services/profile.service';
 import { ThemeSwitcher } from '@/components/debug/ThemeSwitcher';
 import { getThemeFavicon } from '@/core/utils/get-theme-favicon';
 import { SEGMENT_DICTIONARY, SegmentType } from '@/core/config/segments';
+import Script from 'next/script';
 
 // 🎯 Lógica de Servidor para Metadados
 const segment =
@@ -46,11 +52,21 @@ const barlow = Barlow({
   variable: '--font-barlow',
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const resultProfile = await getProfileData();
+  const profile =
+    resultProfile.success && resultProfile.profile
+      ? resultProfile.profile
+      : undefined;
+  const email =
+    resultProfile.success && resultProfile.profile
+      ? (resultProfile.email ?? null)
+      : undefined;
+
   return (
     <html
       lang="pt-BR"
@@ -58,34 +74,55 @@ export default function RootLayout({
       suppressHydrationWarning // 🎯 Necessário para o script de injeção
     >
       <head>
-        {/* 🎯 Injeção do LocalStorage para evitar o "Flash" de tema */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              (function() {
-                try {
-                  var seg = localStorage.getItem('debug-segment') || '${segment}';
-                  document.documentElement.setAttribute('data-segment', seg);
-                } catch (e) {}
-              })();
-            `,
+        (function() {
+          try {
+            var seg = localStorage.getItem('debug-segment') || '${segment}';
+            document.documentElement.setAttribute('data-segment', seg);
+            var theme = localStorage.getItem('debug-theme') || 'PHOTOGRAPHER';
+            document.documentElement.setAttribute('data-theme', theme);
+          } catch (e) {}
+        })();
+      `,
           }}
         />
       </head>
-      <body className="antialiased font-sans bg-luxury-bg text-petroleum">
+
+      <body
+        className={`${montserrat.variable} ${barlow.variable} antialiased font-sans`}
+      >
         <AuthProvider>
-          <NavigationProvider>
-            <SidebarProvider>
-              <Navbar />
-              <main id="main-content" className="w-full">
-                {children}
-              </main>
-              <GoogleApiLoader />
-              <CookieBanner />
-              {/* <ThemeSwitcher /> */}
-            </SidebarProvider>
-          </NavigationProvider>
+          <PlanProvider profile={profile} email={email}>
+            <NavigationProvider>
+              <SidebarProvider>
+                <Navbar />
+                <main id="main-content" className="w-full">
+                  {children}
+                </main>
+                <GoogleApiLoader />
+                <CookieBanner />
+                {/* <ThemeSwitcher /> */}
+              </SidebarProvider>
+            </NavigationProvider>
+          </PlanProvider>
         </AuthProvider>
+
+        {/* Script do Tawk.to - Carregamento assíncrono para não afetar o SEO/Performance
+        <Script id="tawk-to" strategy="afterInteractive">
+          {`
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+      var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+      s1.async=true;
+      s1.src='https://embed.tawk.to/69a0a64b639b701c37e9e362/1jidoj5um';
+      s1.charset='UTF-8';
+      s1.setAttribute('crossorigin','*');
+      s0.parentNode.insertBefore(s1,s0);
+    })();
+  `}
+        </Script> */}
       </body>
     </html>
   );

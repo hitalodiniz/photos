@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, Maximize2 } from 'lucide-react';
 
 import { usePlan } from '@/core/context/PlanContext';
@@ -14,19 +14,19 @@ interface EditorialHeroProps {
 
 const SEGMENT_ASSETS = {
   PHOTOGRAPHER: {
-    path: '/heros/photographer/',
+    path: '/photographer/heros/',
     count: 12,
   },
   EVENT: {
-    path: '/heros/event/',
+    path: '/event/heros/',
     count: 3,
   },
   OFFICE: {
-    path: '/heros/office/',
+    path: '/office/heros/',
     count: 2,
   },
   CAMPAIGN: {
-    path: '/heros/campaign/',
+    path: '/campaign/heros/',
     count: 2,
   },
 };
@@ -45,8 +45,17 @@ export const EditorialHero = ({
   const [imagesOrientation, setImagesOrientation] = useState<
     Record<string, 'portrait' | 'landscape'>
   >({});
+  const fallbackImageIndexRef = useRef<{
+    segment: string;
+    index: number;
+  } | null>(null);
 
-  // 🛡️ 1. Lógica de Normalização e Seleção baseada no Plano
+  // FIX 1: Extrair o único campo de permissions que este componente usa.
+  // usePlan() sempre retorna permissions preenchido (mínimo FREE), então
+  // o optional chaining (?.) é desnecessário e enganoso aqui.
+  const profileCarouselLimit = permissions.profileCarouselLimit;
+
+  // 🛡️ Lógica de Normalização e Seleção baseada no Plano
   const finalImages = useMemo(() => {
     const normalizedUrls = Array.isArray(coverUrls)
       ? coverUrls
@@ -54,20 +63,39 @@ export const EditorialHero = ({
         ? [coverUrls]
         : [];
 
+    // FREE e sem fotos: usa imagem editorial por segmento (determinístico para evitar hydration mismatch).
+    // Índice fixado no primeiro cálculo (ou quando muda o segmento) para não trocar a foto a cada caractere ao editar o title.
     if (planKey === 'FREE' || normalizedUrls.length === 0) {
       const config =
         SEGMENT_ASSETS[segment as keyof typeof SEGMENT_ASSETS] ||
         SEGMENT_ASSETS.PHOTOGRAPHER;
-      const seed = title ? title.length : Math.floor(Math.random() * 100);
-      const index = (seed % config.count) + 1;
-      return [`${config.path}${index}.webp`];
+      const segmentKey = segment ?? 'PHOTOGRAPHER';
+      if (
+        fallbackImageIndexRef.current === null ||
+        fallbackImageIndexRef.current.segment !== segmentKey
+      ) {
+        const seed =
+          typeof title === 'string' && title.length > 0
+            ? title.length
+            : segmentKey.length || 1;
+        fallbackImageIndexRef.current = {
+          segment: segmentKey,
+          index: (seed % config.count) + 1,
+        };
+      }
+      return [`${config.path}${fallbackImageIndexRef.current.index}.webp`];
     }
 
-    const limit = permissions?.profileCarouselLimit || 1;
-    return normalizedUrls.slice(0, limit);
-  }, [coverUrls, planKey, title, permissions]);
+    fallbackImageIndexRef.current = null;
+    // O bloco acima já garante que FREE nunca chega aqui.
+    // Para planos pagos, profileCarouselLimit é sempre >= 1 (START=1, PLUS=1,
+    // PRO=3, PREMIUM=5), então o fallback para 1 era código morto e confuso.
+    return normalizedUrls.slice(0, profileCarouselLimit);
 
-  // Detecção de orientação das imagens (igual GaleriaHero)
+    // title não entra nas deps: no fallback o índice é fixado no primeiro cálculo (ref) para não trocar a cada digitação.
+  }, [coverUrls, planKey, profileCarouselLimit, segment]);
+
+  // Detecção de orientação das imagens
   useEffect(() => {
     finalImages.forEach((img) => {
       if (imagesOrientation[img]) return;
@@ -93,7 +121,7 @@ export const EditorialHero = ({
     );
   };
 
-  // Autoplay do carrossel (igual GaleriaHero)
+  // Autoplay do carrossel
   useEffect(() => {
     if (!isExpanded || finalImages.length <= 1) return;
     const interval = setInterval(() => {
@@ -102,7 +130,7 @@ export const EditorialHero = ({
     return () => clearInterval(interval);
   }, [isExpanded, finalImages.length]);
 
-  // Fechamento automático e scroll (igual GaleriaHero)
+  // Fechamento automático e scroll
   useEffect(() => {
     const totalTime = Math.max(finalImages.length * 3000, 5000);
     const timer = setTimeout(() => setIsExpanded(false), totalTime);
@@ -132,7 +160,7 @@ export const EditorialHero = ({
         isExpanded ? 'h-screen' : 'h-[32vh] md:h-[45vh]'
       }`}
     >
-      {/* 🖼️ BACKGROUND LAYER (navegação igual GaleriaHero) */}
+      {/* 🖼️ BACKGROUND LAYER */}
       <div
         className={`absolute inset-0 z-0 transition-all duration-[2000ms] ease-out ${
           isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
@@ -245,7 +273,7 @@ export const EditorialHero = ({
           </div>
         </div>
 
-        {/* CONTROLES (igual GaleriaHero) */}
+        {/* CONTROLES */}
         {isExpanded && (
           <button
             onClick={() => setIsExpanded(false)}

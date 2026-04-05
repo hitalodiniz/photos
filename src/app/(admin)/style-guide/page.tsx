@@ -14,6 +14,7 @@ import {
   ImageIcon,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
 } from 'lucide-react';
 import { useSegment } from '@/hooks/useSegment';
 
@@ -304,7 +305,7 @@ export default function StyleGuidePage() {
         </h2>
         <div className="bg-petroleum p-10 rounded-[2rem] border border-white/10 shadow-2xl space-y-8">
           <div className="bg-champagne/10 py-3 flex items-center justify-center gap-3 border border-champagne/20 rounded-lg shrink-0">
-            <Wifi size={14} className="text-champagne" strokeWidth={2.5} />
+            <Wifi size={16} className="text-champagne" strokeWidth={2.5} />
             <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-champagne">
               Visualização de Alta Performance
             </span>
@@ -336,7 +337,8 @@ export default function StyleGuidePage() {
                 Ação de Conversão/Upgrade
               </p>
               <button className="w-full h-12 bg-champagne hover:bg-white text-black font-bold uppercase text-xs tracking-luxury-widest rounded-xl shadow-[0_0_15px_rgba(243,229,171,0.4)] transition-all flex items-center justify-center gap-2">
-                Aumentar Limite <ArrowRight size={16} />
+                <TrendingUp size={16} />
+                Aumentar Limite
               </button>
               <div className="flex flex-col items-center gap-1 opacity-60">
                 <p className="text-[9px] text-white uppercase font-bold tracking-luxury-widest">

@@ -1,6 +1,5 @@
-// tailwind.config.ts
 import type { Config } from 'tailwindcss';
-import typography from '@tailwindcss/typography'; // Importação ESM
+import typography from '@tailwindcss/typography';
 
 const config: Config = {
   content: [
@@ -9,20 +8,34 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: 'class', // Alterado para 'class' para maior controle em modais premium
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        // Unificando: 'sans' agora é o padrão global
+        // 🚀 CORREÇÃO DE FONTE:
+        // Adicionamos fallback explícito para Sans-Serif.
+        // Se a Montserrat falhar, ele NUNCA cairá na Times (serifada).
         sans: [
           'var(--font-montserrat)',
+          'Inter', // Fallback premium intermediário
+          'ui-sans-serif',
           'system-ui',
           '-apple-system',
+          'BlinkMacSystemFont',
           'sans-serif',
         ],
-        mono: ['var(--font-barlow)', 'monospace'],
+        // Barlow é excelente para números e dados técnicos (mono-ish)
+        mono: [
+          'var(--font-barlow)',
+          'ui-monospace',
+          'SFMono-Regular',
+          'monospace',
+        ],
       },
       colors: {
+        // 🚀 MELHORIA DE PERFORMANCE:
+        // Usando o formato de função para <alpha-value> garante que
+        // classes como bg-champagne/50 funcionem perfeitamente.
         champagne: {
           DEFAULT: 'rgb(var(--color-champagne) / <alpha-value>)',
           hover: 'rgb(var(--color-champagne-hover) / <alpha-value>)',
@@ -43,7 +56,22 @@ const config: Config = {
         'surface-mixed': 'rgb(var(--color-surface-mixed) / <alpha-value>)',
         'status-success': 'rgb(var(--color-status-success) / <alpha-value>)',
       },
-      // Adicione animações para o "X" do input e transições de modo
+      letterSpacing: {
+        'luxury-tight': '-0.02em', // H1, H2
+        'luxury-normal': '0em', // Body
+        'luxury-wide': '0.12em', // Labels (mais legível que 0.15)
+        'luxury-widest': '0.22em', // Editorial (mais equilibrado que 0.25)
+      },
+      borderRadius: {
+        'luxury-xl': '2rem',
+        'luxury-lg': '1.25rem',
+        luxury: '0.5rem', // 8px é o padrão ouro para botões premium
+        'luxury-sm': '0.375rem',
+      },
+      boxShadow: {
+        'luxury-gold': '0 10px 40px -10px rgba(212, 175, 55, 0.25)',
+        'luxury-soft': '0 20px 50px -12px rgba(5, 38, 51, 0.08)',
+      },
       keyframes: {
         'fade-in-up': {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
@@ -51,30 +79,11 @@ const config: Config = {
         },
       },
       animation: {
-        'fade-in-up': 'fade-in-up 0.5s ease-out',
-      },
-      // Padronização de Tracking (Letter Spacing)
-      letterSpacing: {
-        'luxury-tight': '-0.02em', // Para Títulos H1/H2
-        'luxury-normal': '0em', // Para parágrafos
-        'luxury-wide': '0.15em', // Para Labels, Botões e Microcopy (Editorial)
-        'luxury-widest': '0.25em', // Para Labels, Botões e Microcopy (Editorial)
-      },
-      borderRadius: {
-        'luxury-xl': '2rem', // Para os cards grandes de decisão
-        'luxury-lg': '1.5rem', // Para a barra de busca
-        luxury: '0.75rem', // Para botões
-        'luxury-sm': '0.375rem',
-      },
-      boxShadow: {
-        'luxury-gold': '0 10px 40px -10px rgba(212, 175, 55, 0.3)',
-        'luxury-soft': '0 20px 50px -12px rgba(0, 0, 0, 0.1)',
+        'fade-in-up': 'fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },
-  plugins: [
-    typography, // Use a variável diretamente
-  ],
+  plugins: [typography],
 };
 
 export default config;

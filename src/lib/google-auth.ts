@@ -1,5 +1,6 @@
 // lib/google-auth.ts
 import { createSupabaseClientForCache } from './supabase.server';
+import { addSecondsToSaoPauloIso } from '@/core/utils/date-time';
 
 /**
  * Gera um access token válido para o Google Drive
@@ -99,9 +100,7 @@ export async function getDriveAccessTokenForUser(
       const expiresInSeconds = tokenData.expires_in || 3600;
       const updates: any = {
         google_access_token: tokenData.access_token,
-        google_token_expires_at: new Date(
-          Date.now() + expiresInSeconds * 1000,
-        ).toISOString(),
+        google_token_expires_at: addSecondsToSaoPauloIso(expiresInSeconds),
         google_auth_status: 'active',
       };
       if (tokenData.refresh_token) {

@@ -202,6 +202,7 @@ describe('Profile Helpers', () => {
       const fd = new FormData();
       fd.append('username', 'john');
       fd.append('full_name', 'John Doe');
+      fd.append('phone_contact', '11999999999');
 
       const result = validateRequiredFields(fd);
       expect(result.isValid).toBe(true);
@@ -212,6 +213,7 @@ describe('Profile Helpers', () => {
       const fd = new FormData();
       fd.append('username', '  JOHN  ');
       fd.append('full_name', '  John Doe  ');
+      fd.append('phone_contact', '11999999999');
 
       const result = validateRequiredFields(fd);
       expect(result.isValid).toBe(true);

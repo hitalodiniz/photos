@@ -36,9 +36,9 @@ export function RelatorioBasePage({
       footerButtons={exportButtons}
       onSubmit={() => {}}
     >
-      <div className="flex flex-col h-full max-w-[1600px] mx-auto px-4 md:px-6 antialiased subpixel-antialiased">
+      <div className="flex flex-col h-full max-w-[1600px] mx-auto px-4  antialiased subpixel-antialiased">
         {headerContent && (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b border-slate-100 mb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-b border-slate-100">
             {headerContent}
           </div>
         )}
@@ -74,7 +74,7 @@ export function RelatorioSelectedGallery({
           className="hover:text-petroleum/80 transition-colors inline-flex items-center gap-2"
         >
           {galeria?.title}
-          <ExternalLink size={14} className="opacity-50 shrink-0" />
+          <ExternalLink size={16} className="opacity-50 shrink-0" />
         </a>
       </h2>
     </div>

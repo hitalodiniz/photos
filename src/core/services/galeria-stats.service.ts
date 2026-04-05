@@ -1,9 +1,13 @@
 'use server';
 
-import { createSupabaseClientForCache } from '@/lib/supabase.server';
+import {
+  createSupabaseAdmin,
+  createSupabaseClientForCache,
+} from '@/lib/supabase.server';
 import { cookies, headers } from 'next/headers';
 import { createInternalNotification } from './notification.service';
 import { UAParser } from 'ua-parser-js';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { Galeria } from '../types/galeria';
 import { getPublicGalleryUrl } from '../utils/url-helper';
 
@@ -130,7 +134,9 @@ export async function emitGaleriaEvent({
 
   // 3. Trava de Duplicidade (Apenas para View)
   if (eventType === 'view') {
-    const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const timeLimit = utcIsoFrom(
+      new Date(nowFn().getTime() - 24 * 60 * 60 * 1000),
+    );
     const { data: recent } = await supabase
       .from('tb_galeria_stats')
       .select('id')
@@ -155,28 +161,26 @@ export async function emitGaleriaEvent({
 
   const galeriaUrl = getPublicGalleryUrl(galeria.photographer, galeria.slug);
 
-  // 4. Gravação no Banco
-  const { data: newEvent, error: insertError } = await supabase
+  const statRow = {
+    galeria_id: galeria.id,
+    event_type: eventType,
+    visitor_id: finalVisitorId,
+    device_info: deviceInfo,
+    metadata: {
+      ...metadata,
+      galeria_title: galeria.title,
+      galeria_url: galeriaUrl,
+      location: locationData
+        ? `${locationData.city}, ${locationData.region}`
+        : 'Não rastreado',
+      session_id: sessionCookie,
+    },
+  };
+
+  // 4. Gravação no Banco — `.select()` devolve a linha para `event_data` na notificação
+  const { data: insertedRow, error: insertError } = await supabase
     .from('tb_galeria_stats')
-    .insert([
-      {
-        galeria_id: galeria.id,
-        event_type: eventType,
-        visitor_id: finalVisitorId,
-        device_info: deviceInfo,
-        metadata: {
-          ...metadata,
-          galeria_title: galeria.title, // 👈 Título para o Menu
-          galeria_url: galeriaUrl, // 👈 URL para o Menu
-          location: locationData
-            ? `${locationData.city}, ${locationData.region}`
-            : 'Não rastreado',
-          session_id: sessionCookie,
-        },
-      },
-    ])
-    .select()
-    .single();
+    .insert([statRow]);
 
   if (insertError) {
     // ESTE LOG É VITAL NA VERCEL
@@ -188,11 +192,27 @@ export async function emitGaleriaEvent({
     return;
   }
 
+  const EVENT_LABELS: Record<string, string> = {
+    view: 'Visualização',
+    lead: 'Cadastro de Visitante',
+    download: 'Download Completo',
+    download_favorites: 'Download de Favoritas',
+    share: 'Compartilhamento',
+    selection: 'Seleção de Fotos',
+  };
+
+  const eventForNotification = {
+    ...statRow,
+    created_at: utcIsoFrom(nowFn()),
+    event_label: EVENT_LABELS[eventType] ?? eventType,
+    location: statRow.metadata.location,
+  };
+
   // 5. Notificações
   await handleNotifications(
     eventType,
     galeria,
-    newEvent,
+    eventForNotification,
     { ...metadata, galeria_title: galeria.title, galeria_url: galeriaUrl },
     locationData,
   );
@@ -277,7 +297,7 @@ async function handleNotifications(
  * Otimizado para evitar processamento desnecessário se não houver dados
  */
 export async function getGaleriaEventReport(galeriaId: string) {
-  const supabase = await createSupabaseClientForCache();
+  const supabase = createSupabaseAdmin();
 
   // 1. Busca IDs ignorados e dados do dono em uma única query
   const { data: galeriaData, error: galeriaError } = await supabase
@@ -303,10 +323,16 @@ export async function getGaleriaEventReport(galeriaId: string) {
     .eq('galeria_id', galeriaId);
 
   if (ignoredIds.length > 0) {
-    // 🎯 PostgREST format correto para strings/UUIDs: ("id1","id2")
-    // Note: Usamos join com "," e envolvemos em parênteses.
-    const formattedIds = `(${ignoredIds.map((id: string) => `"${id}"`).join(',')})`;
-    query = query.not('visitor_id', 'in', formattedIds);
+    // Filtramos apenas IDs que não sejam nulos ou vazios
+    const validIgnoredIds = ignoredIds.filter(Boolean);
+
+    if (validIgnoredIds.length > 1) {
+      // Para múltiplos IDs, usamos o formato CSV sem aspas extras que o PostgREST estranha
+      query = query.not('visitor_id', 'in', `(${validIgnoredIds.join(',')})`);
+    } else if (validIgnoredIds.length === 1) {
+      // Para um único ID, eq/neq é mais seguro que 'in'
+      query = query.neq('visitor_id', validIgnoredIds[0]);
+    }
   }
 
   const { data, error: eventsError } = await query.order('created_at', {

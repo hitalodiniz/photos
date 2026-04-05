@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { updateSidebarPreference } from '@/core/services/profile.service';
 
 export function useDashboardState(initialSidebarCollapsed: boolean) {
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showConsentAlert, setShowConsentAlert] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -20,8 +19,6 @@ export function useDashboardState(initialSidebarCollapsed: boolean) {
   }, [viewMode]);
 
   return {
-    isAdminModalOpen,
-    setIsAdminModalOpen,
     toast,
     setToast,
     showConsentAlert,

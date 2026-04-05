@@ -29,6 +29,8 @@ export interface Photographer {
   website?: string | null;
   message_templates?: MessageTemplates;
   plan_key: string;
+  /** Quando true, oculta o WhatsApp no perfil/galeria pública */
+  show_phone_on_public_profile?: boolean;
 }
 
 /** Códigos de tipo de galeria: CT = Contrato, CB = Cobertura, ES = Ensaio */
@@ -47,6 +49,8 @@ export function normalizeContractType(
 export interface GaleriaBase {
   id: string;
   title: string;
+  /** Texto editorial exibido na galeria pública (abaixo da toolbar, acima do grid) */
+  description?: string | null;
   client_name: string;
   date: string;
   location: string;
@@ -58,6 +62,8 @@ export interface GaleriaBase {
   password: string | null;
   user_id: string;
   category: string;
+  /** true quando a galeria foi ocultada automaticamente por downgrade para FREE */
+  auto_archived?: boolean;
   /** CT = Contrato, CB = Cobertura, ES = Ensaio (aceita valor legado boolean no banco) */
   has_contracting_client: GaleriaContractTypeCode | boolean;
   client_whatsapp: string | null;
@@ -84,6 +90,10 @@ export interface GaleriaBase {
   photo_count: number;
   enable_favorites: boolean;
   enable_slideshow: boolean;
+  /** Tema visual da galeria (EDITORIAL_WHITE, PHOTOGRAPHER, DARK_CINEMA, etc.) */
+  theme_key?: string | null;
+  /** Último tema Elite antes de downgrade; usado na reativação PRO/PREMIUM. */
+  last_paid_theme_key?: string | null;
   google_refresh_token: string | null;
   gallery_tags: string | null;
   photo_tags: string | null;

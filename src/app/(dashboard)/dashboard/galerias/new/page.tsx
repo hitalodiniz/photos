@@ -1,9 +1,13 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getProfileData } from '@/core/services/profile.service';
-import { getProfileListCount } from '@/core/services/galeria.service';
+import {
+  getProfileListCount,
+  getPhotographerPoolStats,
+} from '@/core/services/galeria.service';
 import { PlanProvider } from '@/core/context/PlanContext';
 import GaleriaFormPage from '@/features/galeria/components/admin/GaleriaFormPage';
+import { PERMISSIONS_BY_PLAN, type PlanKey } from '@/core/config/plans';
 
 export const metadata: Metadata = {
   title: 'Nova Galeria',
@@ -15,23 +19,31 @@ export default async function NewGaleriaPage() {
   const resultProfile = await getProfileData();
 
   if (!resultProfile.success || !resultProfile.profile) {
-    redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
-    );
+    redirect('/');
   }
 
   const profile = resultProfile.profile;
 
-  // Verifica se o perfil está completo
-  const isProfileComplete =
-    profile.full_name && profile.username && profile.mini_bio;
+  // Busca contagem de galerias e uso do pool (cota de fotos)
+  const [profileListCount, poolStats] = await Promise.all([
+    getProfileListCount(profile.id),
+    getPhotographerPoolStats(profile.id),
+  ]);
 
-  if (!isProfileComplete) {
-    redirect('/onboarding');
+  const planKey = (PERMISSIONS_BY_PLAN[profile.plan_key as PlanKey]
+    ? profile.plan_key
+    : 'FREE') as PlanKey;
+  const permissions = PERMISSIONS_BY_PLAN[planKey];
+  const remainingPhotoCredits = Math.max(
+    0,
+    permissions.photoCredits - poolStats.totalPhotosUsed,
+  );
+  const canCreateByPhotos = remainingPhotoCredits > 0;
+  const canCreateByGalleries = poolStats.activeGalleryCount < permissions.maxGalleries;
+
+  if (!canCreateByPhotos || !canCreateByGalleries) {
+    redirect('/dashboard');
   }
-
-  // Busca contagem de galerias no perfil
-  const profileListCount = await getProfileListCount(profile.id);
 
   return (
     <PlanProvider profile={profile}>

@@ -8,6 +8,8 @@ const NEXT_PUBLIC_MAIN_DOMAIN =
 // 60s * 60m * 24h * 30d = 2.592.000
 export const GLOBAL_CACHE_REVALIDATE = 2592000;
 
+export const PROFILE_CACHE_REVALIDATE = 86400; // 1 dia
+
 // Tempo de cache para galerias e fotos: 30 minutos (em segundos)
 // 60s * 30m = 1800
 export const GALLERY_CACHE_REVALIDATE = 1800;
@@ -86,13 +88,15 @@ export function getPublicGalleryUrl(photographer: any, slug: string) {
   // 3. Remove barras extras no início ou fim
   const finalPath = cleanPath.replace(/^\/+|\/+$/g, '');
 
-  // 4. Lógica de Subdomínio (Ex: hitalo.suagaleria.com.br/minha-galeria)
-  if (photographer?.use_subdomain && username) {
+  // 4. Decide se deve usar subdomínio com base em photographer.use_subdomain
+  const canUseSubdomain = photographer?.use_subdomain === true && !!username;
+
+  if (canUseSubdomain) {
+    // Ex: http://hitalo.dominio.com/galeria
     return `${protocol}//${username}.${mainDomain}/${finalPath}`;
   }
 
-  // 5. Lógica de Domínio Principal (Ex: suagaleria.com.br/hitalo/minha-galeria)
-  // 🎯 Aqui incluímos o username no path para o roteamento padrão funcionar
+  // 5. Caminho clássico: ex: http://dominio.com/hitalo/galeria
   return `${protocol}//${mainDomain}/${username}/${finalPath}`;
 }
 

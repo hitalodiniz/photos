@@ -28,8 +28,9 @@ export async function checkGalleryLimit(
     .from('tb_galerias')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .or('is_deleted.eq.false,is_deleted.is.null')
-    .or('is_archived.eq.false,is_archived.is.null');
+    .eq('auto_archived', false)
+    .eq('is_deleted', false)
+    .eq('is_archived', false);
 
   if (error) {
     console.error('[checkGalleryLimit] Erro ao contar galerias:', error);
@@ -45,7 +46,7 @@ export async function checkGalleryLimit(
     limit,
     error: canCreate
       ? undefined
-      : `Limite de ${limit} galerias atingido para seu plano (${planKey}). Arquive uma galeria ou faça upgrade.`,
+      : `Limite de ${limit} galerias atingido para seu plano (${planKey}). Arquive uma galeria ou faça upgrade do seu plano.`,
   };
 }
 

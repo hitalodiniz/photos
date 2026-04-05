@@ -4,6 +4,15 @@
       "path": "/api/cron/purge-trash",
       "schedule": "0 3 * * *"
     },
-    { "path": "/api/cron/renew-watches", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/renew-watches", "schedule": "0 6 * * *" },
+    {
+      "path": "/api/cron/expire-trials",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/cancel-expired-pending-upgrades",
+      "schedule": "0 0 * * *"
+    },
+    { "path": "/api/cron/apply-downgrades", "schedule": "0 1 * * *" }
   ]
 }

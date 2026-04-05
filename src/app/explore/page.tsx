@@ -146,7 +146,7 @@ export default function ExplorePage() {
               {/* Botão que aparece no Hover */}
               <div className="grid grid-cols-1 transition-all duration-500 max-h-0 opacity-0 group-hover:max-h-20 group-hover:opacity-100">
                 <div className="btn-luxury-primary w-full py-3 mt-2">
-                  Ver Portfólio <ArrowUpRight size={14} />
+                  Ver Portfólio <ArrowUpRight size={16} />
                 </div>
               </div>
             </div>

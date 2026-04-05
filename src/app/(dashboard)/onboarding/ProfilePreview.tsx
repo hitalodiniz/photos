@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import ProfileContent from '@/components/profile/ProfileContent';
 import { getPublicProfile } from '@/core/services/profile.service';
+import type { ThemeKey } from '../ui/ThemeSelector';
+
 
 export default function Photographer({ initialData }: { initialData?: any }) {
   const params = useParams();
@@ -15,8 +17,11 @@ export default function Photographer({ initialData }: { initialData?: any }) {
     if (initialData) {
       setProfile(initialData);
       setLoading(false);
-      return;
     }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (initialData) return;
 
     async function fetchProfile() {
       if (!params.username) return;
@@ -36,7 +41,7 @@ export default function Photographer({ initialData }: { initialData?: any }) {
     }
 
     fetchProfile();
-  }, [params.username, initialData]);
+  }, [params.username]);
 
   // Loading State - Mantendo o fundo preto padrão do editorial
   if (loading) {
@@ -83,6 +88,9 @@ export default function Photographer({ initialData }: { initialData?: any }) {
     }
   })();
 
+  const themeKey =
+    profile.theme_key || process.env.NEXT_PUBLIC_APP_SEGMENT || 'PHOTOGRAPHER';
+
   const profileForPermission =
     profile.plan_key != null ? { plan_key: profile.plan_key } : undefined;
 
@@ -100,7 +108,12 @@ export default function Photographer({ initialData }: { initialData?: any }) {
         website={website}
         backgroundUrl={backgroundUrl}
         useSubdomain={useSubdomain}
-        profile={profileForPermission}
+        profile={
+          profile && 'settings' in profile
+            ? ({ ...profileForPermission, settings: profile.settings } as Profile)
+            : (profileForPermission as Profile)
+        }
+        themeKey={themeKey as ThemeKey}
       />
     </div>
   );

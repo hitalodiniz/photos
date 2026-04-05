@@ -60,7 +60,7 @@ export default async function DocsSlugPage({
 
   if (!resultProfile.success || !resultProfile.profile) {
     redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
+      '/',
     );
   }
 
@@ -71,7 +71,7 @@ export default async function DocsSlugPage({
     profile.full_name && profile.username && profile.mini_bio;
 
   if (!isProfileComplete) {
-    redirect('/onboarding');
+    redirect('/dashboard');
   }
 
   // 🔒 SEGURANÇA: Apenas usuários com a role 'admin' podem acessar

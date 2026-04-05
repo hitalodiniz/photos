@@ -2,6 +2,10 @@ import { createSupabaseClientForCache } from '@/lib/supabase.server';
 import { listPhotosFromDriveFolder } from '@/lib/google-drive';
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { Galeria, GaleriaRawResponse } from '@/core/types/galeria';
+import {
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  type PlanKey,
+} from '@/core/config/plans';
 import { unstable_cache } from 'next/cache';
 import { GLOBAL_CACHE_REVALIDATE } from '../utils/url-helper';
 
@@ -129,8 +133,15 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
       if (!userId || !folderId) return { photos: [], error: 'MISSING_PARAMS' };
 
       try {
+        // Plano resolvido internamente por userId (sem usuário logado)
+        const planContext = { userId };
+
         // 🎯 TENTATIVA 1: Tenta listar sem autenticação (pasta pública)
-        const publicPhotos = await listPhotosFromDriveFolder(folderId);
+        const publicPhotos = await listPhotosFromDriveFolder(
+          folderId,
+          undefined,
+          planContext,
+        );
         if (publicPhotos && publicPhotos.length > 0) {
           // console.log(`[fetchDrivePhotos] ✅ Listou ${publicPhotos.length} fotos de pasta pública (sem auth)`);
           return { photos: publicPhotos, error: null };
@@ -146,6 +157,7 @@ export const fetchDrivePhotos = (userId?: string, folderId?: string) =>
         const photos = await listPhotosFromDriveFolder(
           folderId,
           token || undefined,
+          planContext,
         );
 
         if (photos && photos.length > 0) {
@@ -181,7 +193,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
     async () => {
       const supabase = await createSupabaseClientForCache();
 
-      // Busca os dados da galeria para obter folderId e userId
+      // Busca os dados da galeria para obter folderId, userId e photo_count (limite de exibição = gravado na tabela)
       const { data: galeria, error: galeriaError } = await supabase
         .from('tb_galerias')
         .select(
@@ -189,6 +201,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
           id, 
           drive_folder_id, 
           user_id,
+          photo_count,
           photographer:tb_profiles!user_id (
             plan_key,
             plan_trial_expires
@@ -202,6 +215,28 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         return { photos: [], error: 'GALLERY_NOT_FOUND' };
       }
 
+      const photographerProfile = Array.isArray(galeria.photographer)
+        ? galeria.photographer[0]
+        : galeria.photographer;
+      const photographerPlanKey = (
+        String(photographerProfile?.plan_key ?? 'FREE').toUpperCase() as PlanKey
+      );
+      const maxPhotosByPlan =
+        MAX_PHOTOS_PER_GALLERY_BY_PLAN[photographerPlanKey] ??
+        MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE;
+      const normalizedPhotoCount =
+        typeof galeria.photo_count === 'number' && galeria.photo_count >= 0
+          ? Math.min(galeria.photo_count, maxPhotosByPlan)
+          : undefined;
+
+      // Plano por galleryId; photoCount nunca pode ultrapassar o teto do plano.
+      const planContext = {
+        galleryId,
+        ...(typeof normalizedPhotoCount === 'number' && {
+          photoCount: normalizedPhotoCount,
+        }),
+      };
+
       try {
         // 🎯 TENTATIVA 1: Tenta listar usando API Key (pasta pública do Google Drive)
         // Esta é a estratégia prioritária - funciona SEM precisar do refresh token do criador
@@ -209,6 +244,8 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         // console.log(`[fetchPhotosByGalleryId] Tentando acesso via API Key (pasta pública)...`);
         const publicPhotos = await listPhotosFromDriveFolder(
           galeria.drive_folder_id,
+          undefined,
+          planContext,
         );
 
         if (publicPhotos && publicPhotos.length > 0) {
@@ -228,6 +265,7 @@ export const fetchPhotosByGalleryId = (galleryId: string) =>
         const photos = await listPhotosFromDriveFolder(
           galeria.drive_folder_id,
           token || undefined, // Garante que seja undefined se null
+          planContext,
         );
 
         if (photos && photos.length > 0) {

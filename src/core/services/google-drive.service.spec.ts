@@ -7,6 +7,7 @@ import {
   DrivePhoto,
 } from '@/lib/google-drive';
 import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { MAX_PHOTOS_PER_GALLERY_BY_PLAN } from '@/core/config/plans';
 
 // =========================================================================
 // MOCKS
@@ -58,29 +59,46 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
   // 1. TESTES DE resolvePhotoLimitByPlan
   // =========================================================================
   describe('resolvePhotoLimitByPlan', () => {
-    it('deve retornar limite para plano FREE', () => {
+    it('deve retornar limite para plano FREE (source of truth)', () => {
       const limit = resolvePhotoLimitByPlan('FREE');
-      expect(limit).toBe(80);
+      expect(limit).toBe(MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE);
     });
 
-    it('deve retornar limite para plano PRO', () => {
+    it('deve retornar limite para plano START (source of truth)', () => {
+      const limit = resolvePhotoLimitByPlan('START');
+      expect(limit).toBe(MAX_PHOTOS_PER_GALLERY_BY_PLAN.START);
+    });
+
+    it('deve retornar limite para plano PLUS (source of truth)', () => {
+      const limit = resolvePhotoLimitByPlan('PLUS');
+      expect(limit).toBe(MAX_PHOTOS_PER_GALLERY_BY_PLAN.PLUS);
+    });
+
+    it('deve retornar limite para plano PRO (source of truth)', () => {
       const limit = resolvePhotoLimitByPlan('PRO');
-      expect(limit).toBe(600);
+      expect(limit).toBe(MAX_PHOTOS_PER_GALLERY_BY_PLAN.PRO);
+    });
+
+    it('deve retornar limite para plano PREMIUM (source of truth)', () => {
+      const limit = resolvePhotoLimitByPlan('PREMIUM');
+      expect(limit).toBe(MAX_PHOTOS_PER_GALLERY_BY_PLAN.PREMIUM);
     });
 
     it('deve retornar número direto quando fornecido', () => {
-      const limit = resolvePhotoLimitByPlan(150);
-      expect(limit).toBe(150);
+      const limit = resolvePhotoLimitByPlan(200);
+      expect(limit).toBe(200);
     });
 
+    // plano inválido → fallback FREE
     it('deve retornar limite FREE quando plano não existe', () => {
       const limit = resolvePhotoLimitByPlan('INVALID_PLAN' as any);
-      expect(limit).toBe(80);
+      expect(limit).toBe(MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE);
     });
 
+    // undefined → fallback FREE
     it('deve retornar limite FREE quando plano é undefined', () => {
       const limit = resolvePhotoLimitByPlan(undefined);
-      expect(limit).toBe(80);
+      expect(limit).toBe(MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE);
     });
   });
 
@@ -249,7 +267,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
 
       expect(result).toHaveLength(50);
-      expect(fetch).toHaveBeenCalledTimes(1); // Não busca segunda página
+      expect(fetch).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -331,8 +349,9 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
+    // Limite passado explicitamente como 200 (valor FREE real)
     it('deve aplicar limite de fotos do plano', async () => {
-      const manyFiles = Array.from({ length: 150 }, (_, i) => ({
+      const manyFiles = Array.from({ length: 400 }, (_, i) => ({
         id: `photo-${i}`,
         name: `IMG_${i}.jpg`,
         size: '1024000',
@@ -345,10 +364,10 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
         json: async () => ({ files: manyFiles, nextPageToken: null }),
       } as Response);
 
-      const result = await listPhotosFromPublicFolder(mockFolderId, 80);
+      const result = await listPhotosFromPublicFolder(mockFolderId, 200);
 
       expect(result).not.toBeNull();
-      expect(result!.length).toBeLessThanOrEqual(80);
+      expect(result!.length).toBeLessThanOrEqual(200);
     });
 
     it('deve filtrar apenas arquivos de imagem', async () => {
@@ -416,8 +435,9 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       expect(result![1].name).toBe('IMG_10.jpg');
     });
 
+    // Limite = 200 (FREE real)
     it('deve parar paginação ao atingir limite', async () => {
-      const page1Files = Array.from({ length: 80 }, (_, i) => ({
+      const page1Files = Array.from({ length: 200 }, (_, i) => ({
         id: `photo-${i}`,
         name: `IMG_${i}.jpg`,
         size: '1024000',
@@ -430,10 +450,10 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
         json: async () => ({ files: page1Files, nextPageToken: 'has-more' }),
       } as Response);
 
-      const result = await listPhotosFromPublicFolder(mockFolderId, 80);
+      const result = await listPhotosFromPublicFolder(mockFolderId, 200);
 
       expect(result).not.toBeNull();
-      expect(result!.length).toBeLessThanOrEqual(80);
+      expect(result!.length).toBeLessThanOrEqual(200);
       expect(fetch).toHaveBeenCalledTimes(1);
     });
   });
@@ -504,7 +524,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
     });
 
-    it('deve usar OAuth com limite do plano PRO', async () => {
+    it('deve usar OAuth com pageSize do plano PRO (dinâmico)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
@@ -517,8 +537,9 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
 
       expect(result).toHaveLength(3);
+      const expectedPageSize = Math.min(MAX_PHOTOS_PER_GALLERY_BY_PLAN.PRO, 1000);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=600'),
+        expect.stringContaining(`pageSize=${expectedPageSize}`),
         expect.any(Object),
       );
     });
@@ -543,13 +564,11 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     });
 
     it('deve fazer fallback para API Key se OAuth falhar', async () => {
-      // OAuth falha
       vi.mocked(fetch)
         .mockResolvedValueOnce({
           ok: false,
           status: 401,
         } as Response)
-        // API Key sucede
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
@@ -602,24 +621,20 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
     it('deve lançar erro se driveFolderId não for fornecido', async () => {
       await expect(
         listPhotosFromDriveFolder('', mockAccessToken),
-      ).rejects.toThrow('ID da pasta do Google Drive não fornecido');
+      ).rejects.toThrow('ID da pasta do Google Drive não fornecido.');
     });
 
-    it('deve aplicar limite do plano FREE por padrão', async () => {
+    it('deve aplicar limite do plano FREE por padrão (dinâmico)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
       } as Response);
 
-      const result = await listPhotosFromDriveFolder(
-        mockFolderId,
-        mockAccessToken,
-      );
+      await listPhotosFromDriveFolder(mockFolderId, mockAccessToken);
 
-      expect(result).toHaveLength(3);
-      // Limite FREE = 80
+      const expectedPageSize = Math.min(MAX_PHOTOS_PER_GALLERY_BY_PLAN.FREE, 1000);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('pageSize=80'),
+        expect.stringContaining(`pageSize=${expectedPageSize}`),
         expect.any(Object),
       );
     });
@@ -711,13 +726,14 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
   // 8. TESTES DE PERFORMANCE E LIMITES
   // =========================================================================
   describe('Performance e Limites', () => {
-    it('deve limitar pageSize ao máximo de 1000', async () => {
+    it('deve limitar pageSize ao máximo de 1000 (API Google Drive)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ files: mockDriveFiles, nextPageToken: null }),
       } as Response);
 
-      await listPhotosWithOAuth(mockFolderId, mockAccessToken, 5000);
+      // PREMIUM tem 3000 fotos/galeria, mas a API Google Drive aceita no máximo 1000
+      await listPhotosWithOAuth(mockFolderId, mockAccessToken, 3000);
 
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('pageSize=1000'),
@@ -725,6 +741,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
     });
 
+    // pageSize dobrado para API Key: 100 * 2 = 200
     it('deve usar pageSize * 2 para API Key para compensar não-imagens', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
@@ -740,7 +757,7 @@ describe('Google Drive Library - Suite Completa de Testes', () => {
       );
     });
 
-    it('deve processar 1500+ fotos sem erro', async () => {
+    it('deve processar 1500+ fotos sem erro (plano PRO)', async () => {
       const manyFiles = Array.from({ length: 1500 }, (_, i) => ({
         id: `photo-${i}`,
         name: `IMG_${String(i).padStart(4, '0')}.jpg`,

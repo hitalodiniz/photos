@@ -3,18 +3,14 @@ import { Sparkles, Clock, ArrowRight } from 'lucide-react';
 
 import { differenceInDays, parseISO } from 'date-fns';
 import { usePlan } from '@/core/context/PlanContext';
-export default function TrialBanner() {
-  const { planKey, profile } = usePlan();
 
-  // Só exibe se for plano PRO e for Trial
-  if (planKey !== 'PRO' || !profile?.is_trial || !profile?.plan_trial_expires) {
+export default function TrialBanner() {
+  const { planKey, permissions, trialExpiresAt } = usePlan(); // ← usa o que o contexto realmente expõe
+  // permissions.isTrial é injetado pelo PlanProvider em runtime
+  if (planKey !== 'PRO' || !permissions.isTrial) {
     return null;
   }
-
-  const daysLeft = differenceInDays(
-    parseISO(profile.plan_trial_expires),
-    new Date(),
-  );
+  const daysLeft = differenceInDays(parseISO(trialExpiresAt), new Date());
 
   return (
     <div className="w-full bg-gradient-to-r from-petroleum to-slate-900 border border-gold/30 rounded-luxury p-4 mb-4 relative overflow-hidden group shadow-xl">
@@ -47,7 +43,7 @@ export default function TrialBanner() {
           className="h-10 px-6 bg-gold hover:bg-white text-petroleum font-bold text-[10px] uppercase tracking-luxury rounded-luxury flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-gold/10"
         >
           Garantir Plano Vitalício
-          <ArrowRight size={14} />
+          <ArrowRight size={16} />
         </button>
       </div>
     </div>

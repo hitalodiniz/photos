@@ -78,7 +78,7 @@ export default function NotFound() {
                 onClick={() => router.push('/')}
                 className="mt-auto w-full py-4 bg-petroleum text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all"
               >
-                Voltar Agora <ArrowRight size={14} />
+                Voltar Agora <ArrowRight size={16} />
               </button>
             </EditorialCard>
 
@@ -97,7 +97,7 @@ export default function NotFound() {
                 onClick={() => router.push('/dashboard')}
                 className="mt-auto w-full py-4 bg-white border border-petroleum/20 text-petroleum rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:border-petroleum transition-all"
               >
-                <LogIn size={14} /> Acessar Painel
+                <LogIn size={16} /> Acessar Painel
               </button>
             </EditorialCard>
           </div>

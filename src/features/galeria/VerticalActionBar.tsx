@@ -148,36 +148,38 @@ export function VerticalActionBar({
           <div
             className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
               isFavorited
-                ? 'bg-[#E67E70]'
-                : 'bg-black/5 dark:bg-white/5 group-hover:bg-[#E67E70]'
+                ? 'bg-red-600'
+                : 'bg-black/5 dark:bg-white/5 group-hover:bg-[rgb(var(--pub-bar-bg))]'
             }`}
           >
             {mode === 'selection' ? (
               <Check
                 size={20}
                 className={`transition-colors duration-300 ${
-                  isFavorited ? 'text-white' : 'text-black dark:text-white'
+                  isFavorited
+                    ? ''
+                    : 'text-black dark:text-white group-hover:text-[rgb(var(--pub-bar-icon))]'
                 }`}
-                strokeWidth={2}
               />
             ) : (
               <Heart
-                fill={isFavorited ? 'white' : 'none'}
+                fill={isFavorited ? 'currentColor' : 'none'}
                 size={20}
                 className={`transition-colors duration-300 ${
-                  isFavorited ? 'text-white' : 'text-black dark:text-white'
+                  isFavorited
+                    ? 'text-white'
+                    : 'text-black dark:text-white group-hover:text-[rgb(var(--pub-bar-icon))]'
                 }`}
-                strokeWidth={2}
               />
             )}
           </div>
           {/* Tooltip Dinâmico */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
+            <div className="pub-bar-bg pub-bar-text text-[10px] font-semibold px-2 py-1 rounded shadow-xl border pub-bar-drawer-border">
               {mode === 'selection'
                 ? isFavorited
                   ? 'Remover da seleção'
-                  : 'Selecionar foto'
+                  : 'Selecionar'
                 : isFavorited
                   ? 'Remover dos favoritos'
                   : 'Adicionar aos favoritos'}
@@ -189,13 +191,13 @@ export function VerticalActionBar({
       {/* 2. WHATSAPP */}
       <button
         onClick={handleShare}
-        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-green-500 group relative"
+        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-[#25D366] hover:border-[#25D366] group relative transition-all"
         aria-label="Compartilhar no WhatsApp"
       >
-        <WhatsAppIcon className="text-black dark:text-white w-5 h-5 transition-colors duration-300" />
+        <WhatsAppIcon className="text-black dark:text-white group-hover:text-white w-5 h-5 transition-colors duration-300" />
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case">
+          <div className="pub-bar-bg pub-bar-text text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case border pub-bar-drawer-border">
             Compartilhar no WhatsApp
           </div>
         </div>
@@ -204,25 +206,25 @@ export function VerticalActionBar({
       {/* 3. COPIAR LINK */}
       <button
         onClick={handleCopyLink}
-        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 group relative"
+        className="btn-luxury-base w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-[rgb(var(--pub-bar-bg))] group relative transition-all"
         aria-label="Copiar link"
       >
         {copied ? (
           <Check
             size={20}
-            className="text-black dark:text-champagne transition-colors duration-300"
+            className="pub-bar-accent transition-colors duration-300"
             strokeWidth={2}
           />
         ) : (
           <LinkIcon
             size={20}
-            className="text-black dark:text-white transition-colors duration-300"
+            className="text-black dark:text-white group-hover:text-[rgb(var(--pub-bar-icon))] transition-colors duration-300"
             strokeWidth={2}
           />
         )}
         {/* Tooltip */}
         <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-          <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case">
+          <div className="pub-bar-bg pub-bar-text text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case border pub-bar-drawer-border">
             {copied ? 'Link copiado!' : 'Copiar link'}
           </div>
         </div>
@@ -232,10 +234,10 @@ export function VerticalActionBar({
       {showClose && canUseSlideshow && (
         <button
           onClick={onToggleSlideshow}
-          className={`btn-luxury-base w-12 h-12 rounded-full group relative ${
+          className={`btn-luxury-base w-12 h-12 rounded-full group relative transition-all ${
             isSlideshowActive
-              ? 'bg-black dark:bg-champagne'
-              : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
+              ? 'pub-bar-control-active'
+              : 'bg-black/5 dark:bg-white/5 hover:bg-[rgb(var(--pub-bar-bg))]'
           }`}
           aria-label={
             isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'
@@ -244,19 +246,19 @@ export function VerticalActionBar({
           {isSlideshowActive ? (
             <Pause
               size={20}
-              className="text-white dark:text-black transition-colors duration-300"
+              className="transition-colors duration-300"
               strokeWidth={2}
             />
           ) : (
             <Play
               size={20}
-              className="text-black dark:text-white transition-colors duration-300"
+              className="text-black dark:text-white group-hover:text-[rgb(var(--pub-bar-icon))] transition-colors duration-300"
               strokeWidth={2}
             />
           )}
           {/* Tooltip */}
           <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            <div className="bg-[#F3E5AB] text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case">
+            <div className="pub-bar-bg pub-bar-text text-[10px] font-semibold px-2 py-1 rounded shadow-xl tracking-normal normal-case border pub-bar-drawer-border">
               {isSlideshowActive ? 'Pausar slideshow' : 'Iniciar slideshow'}
             </div>
           </div>
@@ -282,9 +284,12 @@ export function VerticalActionBar({
               e.stopPropagation();
             }}
           >
-            <div className="absolute left-full top-1/2 -translate-y-1/2 border-[8px] border-transparent border-l-champagne pointer-events-none" />
             <div
-              className="bg-champagne shadow-2xl rounded-luxury p-4 border border-white/20 text-black relative"
+              className="absolute left-full top-1/2 -translate-y-1/2 border-[8px] border-transparent 
+            border-l-[rgb(var(--pub-bar-cta-bg))] pointer-events-none"
+            />
+            <div
+              className="pub-bar-btn-cta shadow-2xl rounded-luxury p-4 border pub-bar-drawer-border relative"
               style={{ pointerEvents: 'auto' }}
               onClick={(e) => {
                 e.preventDefault();
@@ -309,12 +314,12 @@ export function VerticalActionBar({
                     e.preventDefault();
                     e.stopPropagation();
                   }}
-                  className="opacity-40 hover:opacity-100 cursor-pointer transition-opacity relative z-[10001]"
+                  className="opacity-40 cursor-pointer transition-opacity relative z-[10001]"
                   style={{ pointerEvents: 'auto' }}
                   aria-label="Fechar tooltip"
                   type="button"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </div>
               <p className="text-[11px] leading-tight font-medium">
@@ -334,33 +339,45 @@ export function VerticalActionBar({
             setIsDownloading(false);
           }}
           className="w-12 h-12 rounded-full flex items-center justify-center transition-all group relative"
-          aria-label="Baixar foto"
+          aria-label="Baixar"
           disabled={isDownloading}
           type="button"
         >
           <div className="relative w-full h-full flex items-center justify-center">
             {showQualityWarning && (
-              <div className="absolute -inset-1 rounded-full bg-champagne animate-ping opacity-80" />
+              <div className="absolute -inset-1 rounded-full bg-[rgb(var(--pub-bar-cta-bg))] animate-ping opacity-80" />
             )}
             <div
               className={`w-full h-full rounded-full flex items-center justify-center transition-all ${
                 showQualityWarning
-                  ? 'bg-black dark:bg-champagne text-white dark:text-black'
-                  : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white'
+                  ? 'pub-bar-btn-cta'
+                  : 'bg-black/5 dark:bg-white/5 group-hover:bg-[rgb(var(--pub-bar-bg))]'
               }`}
             >
               {isDownloading ? (
-                <Loader2 className="animate-spin" size={20} strokeWidth={2} />
+                <Loader2
+                  className={`animate-spin ${showQualityWarning ? '' : 'text-black dark:text-white group-hover:text-[rgb(var(--pub-bar-icon))]'}`}
+                  size={20}
+                  strokeWidth={2}
+                />
               ) : (
-                <Download size={20} strokeWidth={2} />
+                <Download
+                  size={20}
+                  strokeWidth={2}
+                  className={
+                    showQualityWarning
+                      ? ''
+                      : 'text-black dark:text-white group-hover:text-[rgb(var(--pub-bar-icon))]'
+                  }
+                />
               )}
             </div>
           </div>
           {/* Tooltip */}
           {!showQualityWarning && (
             <div className="absolute right-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-              <div className="bg-champagne text-black text-[10px] font-semibold px-2 py-1 rounded shadow-xl">
-                Baixar foto
+              <div className="pub-bar-bg pub-bar-text text-[10px] font-semibold px-2 py-1 rounded shadow-xl border pub-bar-drawer-border">
+                Baixar
               </div>
             </div>
           )}

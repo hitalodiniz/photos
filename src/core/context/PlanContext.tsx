@@ -26,18 +26,32 @@ interface PlanContextProps {
   isPremium: boolean;
   isLoading: boolean;
   canAddMore: (feature: keyof PlanPermissions, currentCount: number) => boolean;
+  trialExpiresAt: string | null;
+  /** Perfil do usuário (tb_profiles). Usado no UpgradeSheet para nome e telefone. */
+  profile: Profile | undefined;
+  /** E-mail do auth. Usado no UpgradeSheet (read-only). */
+  email: string | null | undefined;
 }
 
 const PlanContext = createContext<PlanContextProps | undefined>(undefined);
+
+function parseDbTimestamp(value: string | null | undefined): number {
+  if (!value) return NaN;
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T');
+  return new Date(normalized).getTime();
+}
 
 export function PlanProvider({
   children,
   planKey,
   profile,
+  email,
 }: {
   children: React.ReactNode;
   planKey?: PlanKey;
   profile?: Profile;
+  /** E-mail do usuário (auth). Passado pelo layout a partir de getProfileData(). */
+  email?: string | null;
 }) {
   // 1. SINCRONIZAÇÃO DE SEGMENTO (Visual/Branding)
   const [activeSegment, setActiveSegment] = useState<SegmentType>(
@@ -65,40 +79,29 @@ export function PlanProvider({
 
   // 2. DETERMINAÇÃO DO PLANO (Lógica de Precedência)
   const planToUse = useMemo((): PlanKey => {
-    // Prioridade 1: Se houver um perfil, valida Trial e plano salvo
-    // console.log('DEBUG PROVIDER:', {
-    //   propPlanKey: planKey,
-    //   profileObj: profile,
-    // });
     if (profile) {
-      // Se o perfil está marcado como Trial
-      if (profile.is_trial) {
-        // Caso não tenha data OU a data seja inválida OU já passou de hoje -> FREE
-        if (!profile.plan_trial_expires) return 'FREE';
-
-        const expiresAt = new Date(profile.plan_trial_expires);
-        const isValidDate = !isNaN(expiresAt.getTime());
-        const isNotExpired = new Date() < expiresAt;
-
-        if (isValidDate && isNotExpired) {
-          return (profile.plan_key || 'FREE') as PlanKey;
-        }
-
-        return 'FREE'; // Trial expirado ou data inválida
+      // Isento sempre mantém o plano
+      if (profile.is_exempt) {
+        return (profile.plan_key || 'FREE') as PlanKey;
       }
 
-      // Se não for trial, segue o plano assinado (ou FREE como fallback)
-      return (profile.plan_key || 'FREE') as PlanKey;
+      // LÓGICA DE TRIAL:
+      // - Não rebaixa no client quando expira; o downgrade efetivo ocorre no cron.
+      // - A UI pode usar trialExpiresAt/isTrial para engajamento (ex.: "trial expirou").
+      if (profile.is_trial) {
+        // Mantém o plano vigente durante o período de transição até o cron aplicar.
+        // O parse fica para uso futuro de sinalização sem mudar o plano no client.
+        parseDbTimestamp(profile.plan_trial_expires ?? null);
+        return (profile.plan_key || 'FREE') as PlanKey;
+      }
+
+      // ✅ Não-trial: usa o plano do perfil diretamente
+      if (profile.plan_key) return profile.plan_key as PlanKey;
     }
 
-    // Prioridade 2: Se não houver perfil (Galeria Pública), usa o planKey passado via prop
+    // Fallback: prop planKey (galerias públicas sem perfil)
     if (planKey) return planKey;
 
-    // Se ambos falharem, mas o perfil existir sem a chave (erro de query)
-    if (profile && !profile.plan_key) {
-      console.warn('Cuidado: Perfil recebido sem plan_key!');
-    }
-    // Fallback Final
     return 'FREE';
   }, [profile, planKey]);
 
@@ -134,6 +137,9 @@ export function PlanProvider({
         if (typeof limit === 'number') return currentCount < limit;
         return !!limit;
       },
+      trialExpiresAt: profile?.plan_trial_expires ?? null,
+      profile,
+      email: email ?? null,
       // 🎯 Helper para facilitar o que fizemos no Avatar
       getGalleryPermission: (galeria: any, feature: keyof PlanPermissions) => {
         // Se a galeria tem uma trava específica, ela manda. Se não, manda o plano.
@@ -142,7 +148,7 @@ export function PlanProvider({
         return permissions[feature];
       },
     };
-  }, [planToUse, activeSegment, isLoading, profile]);
+  }, [planToUse, activeSegment, isLoading, profile, email]);
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }

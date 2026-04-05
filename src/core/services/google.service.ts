@@ -1,5 +1,7 @@
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { createSupabaseServerClient } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
+import { addSecondsToSaoPauloIso } from '@/core/utils/date-time';
 /**
  * Busca o ID da pasta-mãe (parent) de um arquivo no Google Drive
  * @param fileId O ID do arquivo selecionado no Google Picker.
@@ -259,7 +261,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
   if (profile.google_access_token && profile.google_token_expires_at) {
     try {
       const expiresAt = new Date(profile.google_token_expires_at).getTime();
-      const now = Date.now();
+      const now = nowFn().getTime();
       const margin = 5 * 60 * 1000; // 5 minutos em milissegundos
 
       // Verifica se o token ainda é válido (com margem de 5 minutos)
@@ -305,7 +307,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
       throw fetchErr;
     }
     
-    // const fetchDuration = Date.now() - startTime;
+    // const fetchDuration = nowFn().getTime() - startTime;
     /* console.log(`[getValidGoogleTokenService] Resposta do Google recebida em ${fetchDuration}ms:`, {
       ok: response.ok,
       status: response.status,
@@ -354,9 +356,7 @@ export async function getValidGoogleTokenService(userId: string): Promise<string
     const updates: any = {
       google_access_token: data.access_token,
       // Google retorna 'expires_in' em segundos (geralmente 3600)
-      google_token_expires_at: new Date(
-        Date.now() + expiresInSeconds * 1000,
-      ).toISOString(),
+      google_token_expires_at: addSecondsToSaoPauloIso(expiresInSeconds),
       google_auth_status: 'active', // Marca como ativo após renovação bem-sucedida
     };
 

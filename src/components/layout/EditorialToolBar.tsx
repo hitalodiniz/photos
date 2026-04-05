@@ -9,6 +9,7 @@ import {
   Check,
   X,
   Layout,
+  Link,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
@@ -95,7 +96,7 @@ export default function EditorialToolbar() {
           </div>
 
           <div className="flex items-center gap-1 pl-1 md:pl-2">
-            {/* <button
+            <button
               onClick={() => router.push('/planos')}
               className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-luxury bg-transparent hover:bg-white/5 transition-all"
             >
@@ -109,7 +110,7 @@ export default function EditorialToolbar() {
               </span>
             </button>
 
-            <div className="h-4 w-[1px] bg-white/10 mx-1" /> */}
+            <div className="h-4 w-[1px] bg-white/10 mx-1" />
 
             <div className="scale-90 md:scale-100">
               <AuthButton variant="minimal" />
@@ -140,14 +141,13 @@ export default function EditorialToolbar() {
           <div className="flex justify-between items-center mb-2 pb-6 border-b border-white/5">
             <div className="flex items-center gap-2">
               {mounted && SegmentIcon && (
-                <SegmentIcon
-                  className="w-4 h-4 text-champagne"
-                  strokeWidth={1.5}
-                />
+                <>
+                  <SegmentIcon className="w-7 h-7 text-champagne group-hover:scale-110 transition-transform" />
+                  <span className="text-[16px] md:text-[18px] font-semibold text-white tracking-tight">
+                    {terms.site_name}
+                  </span>
+                </>
               )}
-              <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white ">
-                {terms.site_name}
-              </span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
@@ -208,22 +208,24 @@ export default function EditorialToolbar() {
 
             <div className="space-y-4 px-1 pb-4">
               <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => router.push('/privacidade')}
-                  className="text-left text-white/90 text-[10px] uppercase tracking-widest"
+                <Link
+                  href="/privacidade"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
                 >
-                  Privacidade
-                </button>
-                <button
-                  onClick={() => router.push('/termos')}
-                  className="text-left text-white/90 text-[10px] uppercase tracking-widest"
+                  Política de Privacidade
+                </Link>
+                <Link
+                  href="/termos"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
                 >
-                  Termos
-                </button>
-              </div>
-              <div className="flex justify-between items-center text-[9px] uppercase tracking-luxury-widest text-white/90 pt-2">
-                <span>© 2026</span>
-                <span className="italic">Premium</span>
+                  Termos de Uso
+                </Link>
+                <Link
+                  href="/politica-cancelamento"
+                  className="text-left text-white/90 text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+                >
+                  Política de Cancelamento
+                </Link>
               </div>
             </div>
           </div>

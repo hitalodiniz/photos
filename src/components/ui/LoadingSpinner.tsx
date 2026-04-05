@@ -98,7 +98,7 @@ export default function LoadingSpinner({
         </div>
       </div>
 
-      {message && size !== 'xs' && (
+      {message && (
         <p
           className={`text-editorial-label ${colorClass} opacity-60 animate-pulse text-center px-4`}
         >

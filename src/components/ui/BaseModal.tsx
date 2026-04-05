@@ -28,6 +28,10 @@ interface BaseModalProps {
   overlayColor?: string;
   overlayOpacity?: string;
   blurLevel?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  /** Tema visual — aplicado no root do portal para que pub-bar-* e color-* resolvam */
+  dataTheme?: string;
+  /** Classe CSS adicional para o container principal do modal */
+  className?: string;
 }
 
 export default function BaseModal({
@@ -44,6 +48,8 @@ export default function BaseModal({
   overlayColor = 'bg-petroleum',
   overlayOpacity = '60',
   blurLevel = 'md',
+  dataTheme,
+  className,
 }: BaseModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -53,16 +59,12 @@ export default function BaseModal({
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && showCloseButton) {
-        onClose();
-      }
+      if (e.key === 'Escape' && isOpen && showCloseButton) onClose();
     };
-
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleEsc);
     }
-
     return () => {
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleEsc);
@@ -71,7 +73,7 @@ export default function BaseModal({
 
   if (!isOpen || !mounted) return null;
 
-  const maxWidthClasses = {
+  const maxWidthClasses: Record<string, string> = {
     sm: 'max-w-sm w-full',
     md: 'max-w-md w-full',
     lg: 'max-w-lg w-full',
@@ -84,7 +86,7 @@ export default function BaseModal({
     full: 'w-[98%] h-[98%]',
   };
 
-  const blurClasses = {
+  const blurClasses: Record<string, string> = {
     none: 'backdrop-blur-none',
     sm: 'backdrop-blur-sm',
     md: 'backdrop-blur-md',
@@ -95,12 +97,23 @@ export default function BaseModal({
   const containerPadding = maxWidth === 'full' ? 'p-0' : 'px-6 md:p-6';
 
   const modalContent = (
+    /*
+      data-theme no root do portal garante que pub-bar-* e --color-* resolvam
+      corretamente para todos os filhos, mesmo fora da árvore React principal.
+    */
     <div
-      className={`fixed inset-0 z-[10000] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500`}
+      className={`fixed inset-0 z-[1100] ${overlayColor}/${overlayOpacity} ${blurClasses[blurLevel]} flex items-center justify-center ${containerPadding} animate-in fade-in duration-500 ${className || ''}`}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      {...(dataTheme ? { 'data-theme': dataTheme } : {})}
     >
       <div
         className="absolute inset-0"
-        onClick={() => showCloseButton && onClose()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (showCloseButton) onClose();
+        }}
       />
 
       <div
@@ -110,17 +123,18 @@ export default function BaseModal({
           maxWidth === 'full' ? 'rounded-none' : 'rounded-luxury'
         } overflow-hidden border border-white/10`}
       >
-        <div className="bg-petroleum px-6 py-4 flex justify-between items-center shrink-0">
+        {/* HEADER — usa pub-bar-bg + pub-bar-text para seguir o tema */}
+        <div className="pub-bar-bg px-6 py-4 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             {headerIcon && (
-              <div className="text-gold scale-90">{headerIcon}</div>
+              <div className="pub-bar-accent scale-90">{headerIcon}</div>
             )}
             <div>
-              <h2 className="text-sm text-white font-bold uppercase tracking-luxury-wide leading-none">
+              <h2 className="text-sm pub-bar-text font-bold uppercase tracking-luxury-wide leading-none">
                 {title}
               </h2>
               {subtitle && (
-                <p className="text-[10px] font-bold uppercase tracking-luxury text-gold mt-1.5 opacity-90">
+                <p className="text-[10px] font-bold uppercase tracking-luxury pub-bar-accent mt-1.5 opacity-90">
                   {subtitle}
                 </p>
               )}
@@ -129,18 +143,18 @@ export default function BaseModal({
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="text-white/90 hover:text-white transition-colors"
+              className="pub-bar-muted hover:pub-bar-text transition-colors"
             >
               <X size={18} />
             </button>
           )}
         </div>
 
-        <div className="bg-white flex-1 overflow-y-auto no-scrollbar">
+        {/* CONTEÚDO — fundo branco, sem interferência do tema */}
+        <div className="bg-white flex-1 overflow-y-auto">
           {topBanner && (
             <div className="border-b border-petroleum/10">{topBanner}</div>
           )}
-
           {maxWidth === 'full' ? (
             <div className="h-full">{children}</div>
           ) : (
@@ -152,8 +166,9 @@ export default function BaseModal({
           )}
         </div>
 
+        {/* FOOTER — usa pub-bar-bg para seguir o tema */}
         {footer && (
-          <div className="bg-petroleum px-6 py-2 border-t border-white/10 shrink-0 text-white">
+          <div className="pub-bar-bg pub-bar-drawer-border border-t px-6 py-3 shrink-0">
             {footer}
           </div>
         )}

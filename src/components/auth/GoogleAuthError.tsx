@@ -145,7 +145,7 @@ export default function GoogleAuthError({
               onClick={() => router.push('/auth/reconnect')}
               className="flex items-center justify-center gap-3 px-6 py-3 bg-champagne text-black hover:bg-champagnetransition-colors rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-lg"
             >
-              <LogIn size={14} /> Reconectar Google Drive
+              <LogIn size={16} /> Reconectar Google Drive
             </button>
           )}
           <button

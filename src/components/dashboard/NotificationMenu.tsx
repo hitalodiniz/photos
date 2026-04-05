@@ -13,6 +13,8 @@ import {
   X,
   ChevronRight,
   Images,
+  Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 
 import {
@@ -30,18 +32,102 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EventDetailsSheet } from '@/components/ui/EventDetailsSheet';
 import { TrafficInfoCard } from './TrafficInfoCard';
+import { usePlan } from '@/core/context/PlanContext';
+import { UpgradeSheet } from '@/components/ui/Upgradesheet';
+import {
+  findNextPlanKeyWithFeature,
+  PLANS_BY_SEGMENT,
+  type PlanKey,
+} from '@/core/config/plans';
+
+function parseNotificationMetadata(
+  metadata: unknown,
+): Record<string, any> | null {
+  if (!metadata) return null;
+  if (typeof metadata === 'object') return metadata as Record<string, any>;
+  if (typeof metadata === 'string') {
+    try {
+      const parsed = JSON.parse(metadata);
+      return parsed && typeof parsed === 'object'
+        ? (parsed as Record<string, any>)
+        : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Notificações antigas: gravadas sem `metadata.event_data` porque o insert não fazia `.select()`. */
+function buildFallbackEventFromNotification(notification: any): any | null {
+  const link = notification?.link;
+  if (typeof link !== 'string') return null;
+  if (!link.includes('/galerias/') || !link.includes('/stats')) return null;
+
+  const parsed = parseNotificationMetadata(notification?.metadata) ?? {};
+  const galeriaMatch = link.match(/\/galerias\/([^/]+)\/stats/);
+  const galeriaId = galeriaMatch?.[1];
+  const subDevice = parsed.device_info as
+    | { type?: string; os?: string; browser?: string }
+    | undefined;
+
+  return {
+    created_at: notification.created_at,
+    event_label:
+      (notification.title &&
+        String(notification.title)
+          .replace(/^[^\p{L}\d]+/u, '')
+          .trim()) ||
+      'Atividade na galeria',
+    location:
+      typeof parsed.galeria_title === 'string'
+        ? parsed.galeria_title
+        : typeof parsed.location === 'string'
+          ? parsed.location
+          : 'Não rastreado',
+    device_info: {
+      type: subDevice?.type ?? '—',
+      os: subDevice?.os ?? '—',
+      browser: subDevice?.browser ?? '—',
+    },
+    metadata: {
+      ...parsed,
+      notification_message: notification.message,
+      galeria_id: galeriaId,
+      stats_url: link,
+    },
+  };
+}
+
+function getEventDataFromNotification(notification: any): any | null {
+  const parsed = parseNotificationMetadata(notification?.metadata);
+  const fromMeta =
+    parsed?.event_data ??
+    parsed?.eventData ??
+    parsed?.event ??
+    notification?.event_data ??
+    null;
+  if (fromMeta) return fromMeta;
+  return buildFallbackEventFromNotification(notification);
+}
 
 export function NotificationMenu({ userId }: { userId: string }) {
+  const { permissions, planKey } = usePlan();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isPending, startTransition] = useTransition();
-
-  // 🎯 Ref para controlar as notificações que eram "novas" nesta sessão de abertura
-  const sessionOpenedRef = useRef<string[]>([]);
+  const [isUpgradeSheetOpen, setIsUpgradeSheetOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
+  const nextPlanForNotifyEvents = findNextPlanKeyWithFeature(
+    planKey,
+    'canAccessNotifyEvents',
+  );
+  const nextPlanForNotifyLabel =
+    PLANS_BY_SEGMENT.PHOTOGRAPHER[nextPlanForNotifyEvents as PlanKey]?.name ??
+    nextPlanForNotifyEvents;
 
   useEffect(() => {
     if (!userId) return;
@@ -126,8 +212,9 @@ export function NotificationMenu({ userId }: { userId: string }) {
   };
 
   const openEventDetails = async (n: any) => {
-    if (n.metadata?.event_data) {
-      setSelectedEvent(n.metadata.event_data);
+    const eventData = getEventDataFromNotification(n);
+    if (eventData) {
+      setSelectedEvent(eventData);
 
       if (!n.read_at) {
         const now = new Date().toISOString();
@@ -142,10 +229,10 @@ export function NotificationMenu({ userId }: { userId: string }) {
   };
 
   const icons = {
-    info: <Info size={14} className="text-blue-400" />,
-    success: <CheckCircle2 size={14} className="text-green-400" />,
-    warning: <AlertTriangle size={14} className="text-gold" />,
-    error: <XCircle size={14} className="text-red-400" />,
+    info: <Info size={16} className="text-blue-400" />,
+    success: <CheckCircle2 size={16} className="text-green-400" />,
+    warning: <AlertTriangle size={16} className="text-gold" />,
+    error: <XCircle size={16} className="text-red-400" />,
   };
 
   return (
@@ -173,9 +260,9 @@ export function NotificationMenu({ userId }: { userId: string }) {
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="absolute right-0 mt-3 w-[400px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed left-4 right-4 top-16 md:absolute md:left-auto md:right-0 md:top-auto md:mt-3 md:w-[400px] bg-petroleum border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-5 bg-white/5 border-b border-white/5 flex items-center justify-between gap-4">
+            <div className="p-4 md:p-5 bg-white/5 border-b border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               {/* LADO ESQUERDO: ÍCONE E TÍTULO */}
               <div className="flex items-center gap-3 shrink-0">
                 <div
@@ -200,49 +287,83 @@ export function NotificationMenu({ userId }: { userId: string }) {
               </div>
 
               {/* LADO DIREITO: BOTÕES ALINHADOS */}
-              <div className="flex items-center gap-2">
-                {/* Botão Marcar Todas - Agora alinhado horizontalmente */}
-                {unreadCount > 0 && (
-                  <button
-                    onClick={handleMarkAllAsRead}
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white text-white hover:text-petroleum border border-white/10 rounded-luxury text-[9px] font-semibold uppercase tracking-tight transition-all active:scale-95 whitespace-nowrap"
-                  >
-                    Marcar como lidas
-                  </button>
-                )}
+              {permissions.canAccessNotifyEvents && (
+                <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                  {/* Botão Marcar Todas - Agora alinhado horizontalmente */}
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white text-white hover:text-petroleum border border-white/10 rounded-luxury text-[9px] font-semibold uppercase tracking-tight transition-all active:scale-95 whitespace-nowrap"
+                    >
+                      Marcar como lidas
+                    </button>
+                  )}
 
-                {/* Botão Ativar Push - Mantido original conforme pedido */}
-                <button
-                  onClick={togglePush}
-                  disabled={isPending}
-                  className={`px-4 py-1.5 rounded-luxury text-[9px] font-semibold uppercase transition-all whitespace-nowrap ${
-                    isPushEnabled
-                      ? 'border border-white/10 text-petroleum hover:bg-white/5 hover:text-white/80 bg-champagne'
-                      : 'bg-gold text-petroleum hover:bg-champagne'
-                  }`}
-                >
-                  {isPending ? '...' : isPushEnabled ? 'Ativo' : 'Ativar Push'}
-                </button>
-              </div>
+                  {/* Botão Ativar Push - Mantido original conforme pedido */}
+                  <button
+                    onClick={togglePush}
+                    disabled={isPending}
+                    className={`px-4 py-1.5 rounded-luxury text-[9px] font-semibold uppercase transition-all whitespace-nowrap ${
+                      isPushEnabled
+                        ? 'border border-white/10 text-petroleum hover:bg-white/5 hover:text-white/80 bg-champagne'
+                        : 'bg-gold text-petroleum hover:bg-champagne'
+                    }`}
+                  >
+                    {isPending
+                      ? '...'
+                      : isPushEnabled
+                        ? 'Ativo'
+                        : 'Ativar Push'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Listagem */}
-            <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
+            <div className="max-h-[calc(100vh-140px)] md:max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
               {/* 🎯 INSERÇÃO DO HELP TIP FIXO NO TOPO */}
-
-              {notifications.length === 0 ? (
+              {!permissions.canAccessNotifyEvents ? (
+                // Gate inline — mais compacto que a tela inteira
+                <div className="p-6 flex flex-col items-center text-center gap-4">
+                  <div className="p-3 bg-gold/10 rounded-xl">
+                    <Bell size={20} className="text-gold" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-petroleum uppercase tracking-widest mb-1">
+                      Notificações em tempo real
+                    </p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Você tem{' '}
+                      <span className="font-bold text-petroleum select-none">
+                        {notifications.length > 0 ? notifications.length : '?'}
+                      </span>{' '}
+                      {notifications.length === 1
+                        ? 'notificação'
+                        : 'notificações'}{' '}
+                      aguardando. Faça upgrade do seu plano para receber alertas
+                      de visitas, downloads e muito mais.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsUpgradeSheetOpen(true)}
+                    className="btn-luxury-primary"
+                  >
+                    <TrendingUp size={16} className="text-gold" />
+                    {`Fazer upgrade para o plano ${nextPlanForNotifyLabel}`}
+                  </button>
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="p-12 text-center text-petroleum/30 text-[11px] italic font-medium uppercase tracking-widest">
                   Nenhuma atividade recente.
                 </div>
               ) : (
                 notifications.map((n) => {
+                  const eventData = getEventDataFromNotification(n);
                   // Extração de dados da Galeria do Metadata
                   const galeriaTitle =
-                    n.metadata?.event_data?.galeria_title ||
-                    n.metadata?.galeria_title;
+                    eventData?.galeria_title || n.metadata?.galeria_title;
                   const galeriaUrl =
-                    n.metadata?.event_data?.galeria_url ||
-                    n.metadata?.galeria_url;
+                    eventData?.galeria_url || n.metadata?.galeria_url;
                   return (
                     <div
                       key={n.id}
@@ -272,7 +393,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                             <div className="flex items-center justify-between gap-3 p-2 rounded-lg bg-petroleum/[0.03] border border-petroleum/5 mt-1">
                               <div className="flex items-center gap-2 overflow-hidden">
                                 <Images
-                                  size={14}
+                                  size={16}
                                   className="text-gold shrink-0"
                                 />
                                 <span className="text-[10px] font-bold text-petroleum/80 uppercase tracking-wider truncate">
@@ -303,7 +424,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                             </span>
 
                             <div className="flex items-center gap-4">
-                              {n.metadata?.event_data ? (
+                              {eventData ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -315,7 +436,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
                                       : 'text-petroleum/80 italic'
                                   }`}
                                 >
-                                  {!n.read_at ? 'Ver Detalhes' : 'Visualizado'}
+                                  Ver detalhes
                                 </button>
                               ) : null}
                             </div>
@@ -335,10 +456,15 @@ export function NotificationMenu({ userId }: { userId: string }) {
           </div>
         </>
       )}
+      <UpgradeSheet
+        isOpen={isUpgradeSheetOpen}
+        onClose={() => setIsUpgradeSheetOpen(false)}
+        featureName="Notificações em Tempo Real"
+        featureKey="canAccessNotifyEvents"
+      />
 
       <EventDetailsSheet
         event={selectedEvent}
-        allEvents={notifications}
         onClose={() => setSelectedEvent(null)}
       />
     </div>

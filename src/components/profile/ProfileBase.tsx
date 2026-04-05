@@ -4,6 +4,7 @@ import PhotographerContainer from './ProfileContainer';
 import { getPublicProfile } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
 import { PlanProvider } from '@/core/context/PlanContext';
+import { PERMISSIONS_BY_PLAN, type PlanKey } from '@/core/config/plans';
 
 const MAIN_DOMAIN = (
   process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000'
@@ -12,6 +13,12 @@ const MAIN_DOMAIN = (
 interface ProfileBaseProps {
   username: string;
   isSubdomainContext: boolean;
+}
+
+function isSubdomainAllowedByCurrentPlan(planKey: unknown): boolean {
+  const normalized = String(planKey ?? 'FREE').toUpperCase() as PlanKey;
+  const perms = PERMISSIONS_BY_PLAN[normalized];
+  return perms?.useSubdomain === true;
 }
 
 export default async function PhotographerProfileBase({
@@ -23,13 +30,16 @@ export default async function PhotographerProfileBase({
 
   // 1. Se o fotógrafo não existe no banco -> 404
   if (!profile) notFound();
+  const canUseSubdomain =
+    profile.use_subdomain === true &&
+    isSubdomainAllowedByCurrentPlan(profile.plan_key);
 
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
 
   // 2. REGRA DE SUBDOMÍNIO (Acesso via hitalo.site.com)
   if (isSubdomainContext) {
     // Se o cara tentou acessar via subdomínio mas NÃO tem a permissão ativa -> 404
-    if (!profile.use_subdomain) {
+    if (!canUseSubdomain) {
       notFound();
     }
     // Se está tudo certo, renderiza o container que você já tem
@@ -43,7 +53,7 @@ export default async function PhotographerProfileBase({
   // 3. REGRA DE ROTA CLÁssica (Acesso via site.com/hitalo)
   if (!isSubdomainContext) {
     // Se ele tem subdomínio ativo, mandamos ele para lá (SEO)
-    if (profile.use_subdomain) {
+    if (canUseSubdomain) {
       const correctUrl = resolveGalleryUrl(
         username,
         '',

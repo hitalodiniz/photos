@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { headers } from 'next/headers';
 import {
   createSupabaseClientForCache,
   createSupabaseServerClient,
@@ -8,7 +9,8 @@ import {
 } from '@/lib/supabase.server';
 import { suggestUsernameFromEmail } from '@/core/utils/user-helpers';
 import { cache } from 'react';
-import { GLOBAL_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { PROFILE_CACHE_REVALIDATE } from '@/core/utils/url-helper';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { MessageTemplates, UserSettings } from '../types/profile';
 import { PlanKey } from '../config/plans';
 
@@ -27,7 +29,6 @@ import {
 
 import { revalidateProfile } from '@/actions/revalidate.actions';
 import { normalizePhoneNumber } from '../utils/masks-helpers';
-import { profile } from 'console';
 
 // =========================================================================
 // 1. LEITURA DE DADOS (READ)
@@ -80,7 +81,7 @@ export async function getProfileData(supabaseClient?: any) {
     },
     [`profile-private-${user.id}`],
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE, // 30 dias
+      revalidate: PROFILE_CACHE_REVALIDATE, // 30 dias
       tags: [`profile-private-${user.id}`],
     },
   )(user.id);
@@ -89,7 +90,40 @@ export async function getProfileData(supabaseClient?: any) {
     success: true,
     user_id: user.id,
     profile,
-    email: user.email,
+    email: profile?.email ?? user.email,
+    suggestedUsername: suggestUsernameFromEmail(user.email!),
+  };
+}
+
+/**
+ * Mesma lógica de getProfileData mas SEM cache (fetch direto no banco).
+ * Usar em páginas de redirect (dashboard/onboarding) para evitar loop por cache desatualizado.
+ */
+export async function getProfileDataFresh(supabaseClient?: any) {
+  const supabase =
+    supabaseClient || (await createSupabaseServerClientReadOnly());
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: 'Usuário não autenticado.' };
+  }
+
+  const { data: profile, error } = await supabase
+    .from('tb_profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return {
+    success: true,
+    user_id: user.id,
+    profile,
+    email: profile?.email ?? user.email,
     suggestedUsername: suggestUsernameFromEmail(user.email!),
   };
 }
@@ -104,7 +138,7 @@ export async function fetchProfileRaw(username: string) {
     async (uname: string) => fetchProfileDirectDB(uname),
     [`profile-${username}`],
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE,
+      revalidate: PROFILE_CACHE_REVALIDATE,
       tags: [`profile-${username}`],
     },
   )(username);
@@ -193,7 +227,11 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
   // 3. Paralelismo de Busca e Uploads (Otimização de Performance)
   // Iniciamos a verificação do profile e os uploads simultaneamente
   const [profileRes, profilePictureUrl, backgroundUrls] = await Promise.all([
-    supabase.from('tb_profiles').select('plan_key').eq('id', user.id).single(),
+    supabase
+      .from('tb_profiles')
+      .select('plan_key, settings, accepted_ip, accepted_at')
+      .eq('id', user.id)
+      .single(),
 
     uploadProfilePicture(
       supabase,
@@ -210,7 +248,41 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     ),
   ]);
 
-  const isFirstSetup = !profileRes.data?.plan_key;
+  const existingProfile = profileRes.data;
+  const isFirstSetup = !existingProfile?.plan_key;
+
+  // 4. Lógica de Aceite dos Termos (IP e Data)
+  const termsData: {
+    accepted_terms: boolean;
+    accepted_at?: string;
+    accepted_ip?: string;
+  } = {
+    accepted_terms: formFields.accepted_terms,
+  };
+
+  if (formFields.accepted_terms && !existingProfile?.accepted_ip) {
+    const headersList = headers();
+    const ip = (headersList.get('x-forwarded-for') ?? '127.0.0.1').split(
+      ',',
+    )[0];
+    termsData.accepted_at = utcIsoFrom(nowFn());
+    termsData.accepted_ip = ip;
+  } else if (existingProfile?.accepted_ip) {
+    // Preserva os dados originais se já existirem
+    termsData.accepted_at = existingProfile.accepted_at;
+    termsData.accepted_ip = existingProfile.accepted_ip;
+  }
+
+  const currentSettings =
+    (existingProfile?.settings as UserSettings | null) || {};
+  const mergedSettings: UserSettings = {
+    ...currentSettings,
+    display: currentSettings?.display ?? {},
+    defaults: {
+      ...(currentSettings?.defaults ?? {}),
+      show_phone_on_public_profile: formFields.show_phone_on_public_profile,
+    },
+  };
 
   // 4. Montagem dos dados (Separação de lógica)
   const updateData = {
@@ -222,12 +294,14 @@ export async function upsertProfile(formData: FormData, supabaseClient?: any) {
     website: formFields.website,
     operating_cities: parseOperatingCities(formFields.operating_cities_json),
     profile_picture_url: profilePictureUrl,
-    accepted_terms: formFields.accepted_terms,
-    accepted_at: formFields.accepted_terms ? new Date().toISOString() : null,
+    ...termsData,
     background_url: backgroundUrls,
-    updated_at: new Date().toISOString(),
+    updated_at: utcIsoFrom(nowFn()),
     specialty: parseOperatingCities(formFields.specialty),
     custom_specialties: parseOperatingCities(formFields.custom_specialties),
+    ...(formFields.theme_key ? { theme_key: formFields.theme_key } : {}),
+
+    settings: mergedSettings,
 
     ...(isFirstSetup ? buildTrialData() : {}), // Merge condicional limpo
   };
@@ -272,7 +346,7 @@ export async function updateProfileSettings(data: {
     .update({
       settings: data.settings,
       message_templates: data.message_templates,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', user.id);
 
@@ -353,7 +427,7 @@ export async function updateCustomCategories(categories: string[]) {
     .from('tb_profiles')
     .update({
       custom_categories: categories,
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', user.id);
 
@@ -373,7 +447,7 @@ export async function updateCustomCategories(categories: string[]) {
 }
 
 /**
- * 🎯 BUSCA PERFIL POR USERNAME (Com Cache de 30 dias)
+ * 🎯 BUSCA PERFIL POR USERNAME (Com Cache de 1 dia)
  * Esta função é a "Fonte da Verdade" para as páginas públicas e subdomínios.
  * Utiliza tags para que o cache possa ser invalidado instantaneamente no update.
  */
@@ -399,8 +473,8 @@ export const getProfileByUsername = cache(async (username: string) => {
     },
     [`profile-data-${cleanUsername}`], // Chave única do cache
     {
-      revalidate: GLOBAL_CACHE_REVALIDATE, // 30 dias (definido no seu url-helper)
-      tags: [`profile-${cleanUsername}`], // Tag para revalidateTag
+      revalidate: PROFILE_CACHE_REVALIDATE, // 30 dias (definido no seu url-helper)
+      tags: [`profile-${cleanUsername}`, `profile-data-${cleanUsername}`],
     },
   )(cleanUsername);
 });
@@ -467,7 +541,7 @@ export async function processSubscriptionAction(
     .update({
       plan_key: newPlan,
       is_trial: false, // 🛡️ SEMPRE desativa trial ao mudar de plano manualmente ou via pagamento
-      updated_at: new Date().toISOString(),
+      updated_at: utcIsoFrom(nowFn()),
     })
     .eq('id', profileId)
     .select()
@@ -506,7 +580,7 @@ async function logPlanChange(
     old_plan: oldPlan,
     new_plan: newPlan,
     reason: reason,
-    created_at: new Date().toISOString(),
+    created_at: utcIsoFrom(nowFn()),
   });
 }
 

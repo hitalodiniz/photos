@@ -34,6 +34,7 @@
 // src/services/auth.service.ts
 import { getBaseUrl } from '@/lib/get-base-url';
 import { supabase } from '@/lib/supabase.client';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { Session } from '@supabase/supabase-js';
 
 // Use globalThis to ensure singleton even with multiple module evaluations
@@ -70,7 +71,7 @@ export const authService = {
         if (data.session) {
           const expiresAt = data.session.expires_at;
           if (expiresAt) {
-            const now = Math.floor(Date.now() / 1000);
+            const now = Math.floor(nowFn().getTime() / 1000);
             const expiresIn = expiresAt - now;
 
             if (expiresIn < 300) {
@@ -121,7 +122,7 @@ export const authService = {
       return authCache.refreshPromise;
     }
 
-    const now = Date.now();
+    const now = nowFn().getTime();
     if (now - authCache.lastRefreshTime < 10000) {
       return { data: { session: null }, error: null };
     }

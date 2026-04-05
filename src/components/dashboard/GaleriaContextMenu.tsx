@@ -151,35 +151,24 @@ export default function GaleriaContextMenu({
             </button>
           </div>
 
-          {/* Toggle Arquivar */}
-          <div
-            className={`${isMobile ? 'p-3' : 'px-4 py-2.5'} flex items-center justify-between gap-3 rounded-luxury hover:bg-amber-50 transition-colors border-b border-slate-100`}
+          {/* Arquivar */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAction(() => onArchive(galeria));
+            }}
+            className={
+              isMobile
+                ? 'w-full flex items-center gap-3 p-3 rounded-luxury hover:bg-amber-50 transition-colors text-left'
+                : btnClassBorder
+            }
           >
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Archive
-                size={isMobile ? 18 : 16}
-                className="text-amber-600 shrink-0"
-              />
-              <span className="text-[11px] font-medium text-amber-600 whitespace-nowrap">
-                Arquivar
-              </span>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggle(() => onArchive(galeria));
-              }}
-              className={`relative !h-6 !w-9 rounded-full transition-colors duration-200 shrink-0 ${
-                galeria.is_archived ? 'bg-amber-500' : 'bg-slate-200'
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                  galeria.is_archived ? 'translate-x-4' : ''
-                }`}
-              />
-            </button>
-          </div>
+            <Archive
+              size={isMobile ? 18 : 16}
+              className="text-amber-600 shrink-0"
+            />
+            <span className="text-amber-600 flex-1 text-left">Arquivar</span>
+          </button>
 
           {/* Mover para Lixeira */}
           <button

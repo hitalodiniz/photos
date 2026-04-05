@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getDirectGoogleUrl, getProxyUrl } from '@/core/utils/url-helper';
-import { delay } from 'framer-motion';
+
+const IS_PRODUCTION = process.env.NEXT_PUBLIC_NODE_ENV === 'PRODUCTION';
 
 interface UseGoogleDriveImageOptions {
   photoId: string | number;
@@ -25,8 +26,9 @@ export function useGoogleDriveImage({
   index,
 }: UseGoogleDriveImageOptions) {
   // 🎯 Se useProxyDirectly=true, usa proxy desde o início (evita 429 em grids)
+  // 🎯 Em produção (IS_PRODUCTION=true), proxy nunca é usado — sempre direto no Google
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [usingProxy, setUsingProxy] = useState(useProxyDirectly);
+  const [usingProxy, setUsingProxy] = useState(false); // produção nunca inicia com proxy
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(
     'loading',
   );
@@ -40,16 +42,20 @@ export function useGoogleDriveImage({
     // 🎯 LÓGICA DE DELAY:
     // 🎯 Aumentamos para 80ms para dar mais fôlego ao limite do Google
     // Além disso, adicionamos um "jitter" (atraso aleatório) para não parecer um bot
-    const baseDelay = index * 150;
+    const baseDelay = (index ?? 0) * 150;
     const jitter = Math.random() * 200;
     const finalDelay = baseDelay + jitter;
 
     const timeout = setTimeout(() => {
-      const url = useProxyDirectly
+      // Em produção: sempre direto no Google, ignora useProxyDirectly para não gastar cota do servidor
+      // Em dev/localhost: respeita useProxyDirectly normalmente
+      const forceProxy = !IS_PRODUCTION && useProxyDirectly;
+      const url = forceProxy
         ? getProxyUrl(photoId, width)
         : getDirectGoogleUrl(photoId, width);
 
       setImgSrc(url);
+      setUsingProxy(forceProxy);
     }, finalDelay);
 
     return () => clearTimeout(timeout);
@@ -100,6 +106,16 @@ export function useGoogleDriveImage({
 
   const handleError = useCallback(
     (event?: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      // Em produção: nunca usa proxy, apenas marca erro para não gastar cota do servidor
+      if (IS_PRODUCTION) {
+        setStatus('error');
+        setError('Falha ao carregar imagem');
+        console.warn(
+          `[IMAGE_ERROR] Falha direto Google em prod. ID: ${photoId}`,
+        );
+        return;
+      }
+
       if (!fallbackToProxy) {
         setStatus('error');
         setError('Falha ao carregar imagem');
@@ -127,7 +143,8 @@ export function useGoogleDriveImage({
       } else {
         setStatus('error');
         setError('Falha total na imagem');
-        console.error(`[IMAGE_ERROR] Falha total na imagem ID: ${photoId}`);
+        // Log menos agressivo para evitar erro vermelho no console/overlay
+        console.warn(`[IMAGE_ERROR] Falha total na imagem ID: ${photoId}`);
       }
     },
     [photoId, width, usingProxy, fallbackToProxy],

@@ -54,7 +54,7 @@ export default function SidebarGalerias({
       ${
         currentView === item.id
           ? 'bg-white/10 text-champagne !translate-x-1'
-          : 'text-white/90 hover:bg-white/5 hover:text-champagne'
+          : 'text-white/90 hover:bg-white/5 hover:text-champagne active:bg-white/10'
       }`}
           >
             {/* 1. Indicador Ativo (Absoluto) */}

@@ -4,6 +4,12 @@ import { useState } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import type { Profile } from '@/core/types/profile';
 import {
+  MAX_GALLERIES_HARD_CAP_BY_PLAN,
+  PHOTO_CREDITS_BY_PLAN,
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  type PlanKey,
+} from '@/core/config/plans';
+import {
   moveToTrash,
   restoreGaleria,
   toggleArchiveGaleria,
@@ -18,6 +24,12 @@ import {
 } from '@/actions/revalidate.actions';
 import { authService } from '@photos/core-auth';
 
+/** Limites do plano para validar sync (máx. por galeria e pool total). */
+export type DashboardPlanLimits = {
+  maxPhotosPerGallery: number;
+  photoCredits: number;
+};
+
 export function useDashboardActions(
   galerias: Galeria[],
   setGalerias: React.Dispatch<React.SetStateAction<Galeria[]>>,
@@ -26,12 +38,17 @@ export function useDashboardActions(
     toast: { message: string; type: 'success' | 'error' } | null,
   ) => void,
   currentView: 'active' | 'archived' | 'trash',
+  planLimits?: DashboardPlanLimits | null,
 ) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [galeriaToPermanentlyDelete, setGaleriaToPermanentlyDelete] =
     useState<Galeria | null>(null);
+  const [limitModalAfterSync, setLimitModalAfterSync] = useState<{
+    planLimit: number;
+    photoCount: number;
+  } | null>(null);
 
   // Helper interno para evitar repetição e garantir que username/id existam
   const triggerProfileRevalidation = async () => {
@@ -41,16 +58,92 @@ export function useDashboardActions(
   };
 
   const handleArchiveToggle = async (g: Galeria) => {
-    const newStatus = !g.is_archived;
+    const isCurrentlyArchived = g.is_archived || g.auto_archived;
+    const newStatus = !isCurrentlyArchived; // Se está arquivada, queremos desarquivar (false)
+
+    // Ao desarquivar, respeitar limites de plano (galerias ativas e pool de arquivos)
+    if (!newStatus && photographer) {
+      const planKey = (photographer.plan_key ?? 'FREE') as PlanKey;
+      const galleryLimit = MAX_GALLERIES_HARD_CAP_BY_PLAN[planKey] ?? 3;
+      const photoLimit =
+        planLimits?.photoCredits ?? PHOTO_CREDITS_BY_PLAN[planKey];
+      const maxPhotosPerGallery =
+        planLimits?.maxPhotosPerGallery ??
+        MAX_PHOTOS_PER_GALLERY_BY_PLAN[planKey];
+
+      const activeGalleries = galerias.filter(
+        (item) =>
+          !item.is_deleted &&
+          !item.is_archived &&
+          !item.auto_archived &&
+          item.id !== g.id,
+      );
+
+      const currentGalleryCount = activeGalleries.length;
+      const currentPhotoSum = activeGalleries.reduce(
+        (sum, item) => sum + (item.photo_count ?? 0),
+        0,
+      );
+
+      const candidatePhotos = g.photo_count ?? 0;
+
+      const respectsSingleGalleryLimit = candidatePhotos <= maxPhotosPerGallery;
+      const fitsInGlobalGalleryLimit = currentGalleryCount < galleryLimit;
+      const fitsInGlobalPhotoLimit =
+        currentPhotoSum + candidatePhotos <= photoLimit;
+
+      if (
+        !respectsSingleGalleryLimit ||
+        !fitsInGlobalGalleryLimit ||
+        !fitsInGlobalPhotoLimit
+      ) {
+        // Explica claramente qual limite foi atingido (galerias ou cota de arquivos)
+        let message: string;
+        const canSuggestUpgrade = planKey !== 'PREMIUM';
+        if (!respectsSingleGalleryLimit) {
+          message = canSuggestUpgrade
+            ? `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}). Faça upgrade do seu plano para reativar.`
+            : `Esta galeria tem mais arquivos (${candidatePhotos}) do que o limite por galeria do seu plano (${maxPhotosPerGallery}).`;
+        } else if (!fitsInGlobalGalleryLimit) {
+          message = canSuggestUpgrade
+            ? `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite. Faça upgrade do seu plano para reativar mais galerias.`
+            : `Seu plano permite no máximo ${galleryLimit} galerias ativas. Você já atingiu esse limite.`;
+        } else if (!fitsInGlobalPhotoLimit) {
+          message = canSuggestUpgrade
+            ? `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria. Faça upgrade do seu plano para aumentar a cota.`
+            : `A cota de arquivos do seu plano (${photoLimit} arquivos) não comporta reativar esta galeria.`;
+        } else {
+          message = 'Não foi possível reativar a galeria com o plano atual.';
+        }
+        setToast({ message, type: 'error' });
+        return;
+      }
+    }
+
     setUpdatingId(g.id);
-    const result = await toggleArchiveGaleria(g.id, g.is_archived);
+
+    // A service espera o status atual (is_archived || auto_archived), não o novo.
+    const result = await toggleArchiveGaleria(g.id, isCurrentlyArchived);
 
     if (result.success) {
       setGalerias((prev) =>
         prev.map((item) =>
-          item.id === g.id ? { ...item, is_archived: newStatus } : item,
+          // IMPORTANTE: Ao atualizar o estado local, zeramos ambos para refletir o banco
+          item.id === g.id
+            ? { ...item, is_archived: newStatus, auto_archived: false }
+            : item,
         ),
       );
+      // Revalida cache da galeria para remover/atualizar exibição pública por slug.
+      if (photographer?.id) {
+        await revalidateGalleryCache({
+          galeriaId: g.id,
+          userId: photographer.id,
+          username: photographer.username,
+          slug: g.slug,
+          driveFolderId: g.drive_folder_id,
+        });
+      }
       await triggerProfileRevalidation();
       setToast({
         message: newStatus ? 'Galeria arquivada' : 'Galeria restaurada',
@@ -105,15 +198,57 @@ export function useDashboardActions(
       const novoTotal = result.data?.photo_count;
 
       if (result.success && typeof novoTotal === 'number') {
+        const maxPerGallery = planLimits?.maxPhotosPerGallery ?? 300;
+        const poolTotal = planLimits?.photoCredits ?? 450;
+        const currentCount = galeria.photo_count ?? 0;
+
+        // Considera somente galerias ativas para cota global (mesma regra do admin).
+        const activeGalerias = galerias.filter(
+          (g) => !g.is_deleted && !g.is_archived && !g.auto_archived,
+        );
+        const activeTotal = activeGalerias.reduce(
+          (sum, g) => sum + (g.photo_count ?? 0),
+          0,
+        );
+
+        // Quantos créditos ainda podem ser adicionados sem estourar o pool.
+        const remainingCredits = Math.max(0, poolTotal - activeTotal);
+        // Limite desta galeria considerando o que ela já possui + saldo disponível.
+        const maxAllowedByPool = currentCount + remainingCredits;
+        const cappedTotal = Math.min(
+          novoTotal,
+          maxPerGallery,
+          maxAllowedByPool,
+        );
+
         setGalerias((prev) =>
           prev.map((g) =>
-            g.id === galeria.id ? { ...g, photo_count: novoTotal } : g,
+            g.id === galeria.id ? { ...g, photo_count: cappedTotal } : g,
           ),
         );
-        setToast({
-          message: `Sincronizado: ${novoTotal} fotos`,
-          type: 'success',
-        });
+
+        const overPerGallery = novoTotal > maxPerGallery;
+        const overPool = novoTotal > maxAllowedByPool;
+
+        if (overPerGallery) {
+          setLimitModalAfterSync({
+            planLimit: maxPerGallery,
+            photoCount: novoTotal,
+          });
+        } else if (overPool) {
+          setToast({
+            message:
+              cappedTotal === currentCount
+                ? `Foram encontrados ${novoTotal} arquivos, mas sua cota atual está no limite. Nenhuma foto adicional será exibida nesta galeria.`
+                : `Foram encontrados ${novoTotal} arquivos. Sua cota atual permite exibir somente ${cappedTotal} nesta galeria.`,
+            type: 'error',
+          });
+        } else {
+          setToast({
+            message: `Sincronizado: ${cappedTotal} fotos`,
+            type: 'success',
+          });
+        }
       } else if (!result.success) {
         setToast({
           message: result.error || 'Erro ao sincronizar.',
@@ -170,7 +305,9 @@ export function useDashboardActions(
     try {
       const promises = ids.map((id) => {
         const galeria = galerias.find((g) => g.id === id);
-        return toggleArchiveGaleria(id, !!galeria?.is_archived);
+        const isCurrentlyArchived =
+          !!galeria && (galeria.is_archived || galeria.auto_archived);
+        return toggleArchiveGaleria(id, isCurrentlyArchived);
       });
 
       const results = await Promise.all(promises);
@@ -178,7 +315,11 @@ export function useDashboardActions(
         setGalerias((prev) =>
           prev.map((item) =>
             selectedIds.has(item.id)
-              ? { ...item, is_archived: !item.is_archived }
+              ? {
+                  ...item,
+                  is_archived: !(item.is_archived || item.auto_archived),
+                  auto_archived: false,
+                }
               : item,
           ),
         );
@@ -221,6 +362,38 @@ export function useDashboardActions(
     }
   };
 
+  const handleBulkPermanentDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setUpdatingId('bulk');
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) => deleteGalleryPermanently(id)),
+      );
+      const successfulIds = ids.filter((id, idx) => {
+        const r = results[idx];
+        return r.status === 'fulfilled' && (r.value === true || r.value);
+      });
+
+      if (successfulIds.length > 0) {
+        setGalerias((prev) =>
+          prev.filter((g) => !successfulIds.includes(g.id)),
+        );
+        await triggerProfileRevalidation();
+        setToast({
+          message: 'Galerias excluídas permanentemente.',
+          type: 'success',
+        });
+        setSelectedIds(new Set());
+      }
+    } catch {
+      setToast({ message: 'Erro na exclusão permanente.', type: 'error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleBulkRestore = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -254,12 +427,15 @@ export function useDashboardActions(
     setIsBulkMode,
     galeriaToPermanentlyDelete,
     setGaleriaToPermanentlyDelete,
+    limitModalAfterSync,
+    setLimitModalAfterSync,
     handleArchiveToggle,
     handleToggleProfile,
     handleSyncDrive,
     executePermanentDelete,
     handleBulkArchive,
     handleBulkDelete,
+    handleBulkPermanentDelete,
     handleBulkRestore,
     handleToggleSelect: (id: string) => {
       setSelectedIds((prev) => {

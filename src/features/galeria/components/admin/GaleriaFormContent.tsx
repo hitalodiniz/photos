@@ -18,6 +18,7 @@ import {
   Type,
   FolderSync,
   Tag,
+  FileText,
   Layout,
   Eye,
   CheckCircle2,
@@ -30,31 +31,36 @@ import {
   PlayCircle,
   Settings2,
   CalendarClock,
+  Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon';
 import { convertToDirectDownloadUrl } from '@/core/utils/url-helper';
 import { LimitUpgradeModal } from '@/components/ui/LimitUpgradeModal';
 import { useGoogleDriveImage } from '@/hooks/useGoogleDriveImage';
 import { GalleryDesignFields } from './GaleriaDesignFields';
-
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
-
 import { PlanGuard } from '@/components/auth/PlanGuard';
 import { GaleriaDriveSection } from './GaleriaDriveSection';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
-import PasswordInput from '@/components/ui/PasswordInput'; // Import PasswordInput
+import PasswordInput from '@/components/ui/PasswordInput';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { GalleryInteractionFields } from './GalleryInteractionFields';
-
-import { Toast } from '@/components/ui';
 import { getFolderPhotos } from '@/core/services/google-drive.service';
 import {
   GalleryTypeToggle,
   type GalleryTypeValue,
 } from '@/components/ui/GalleryTypeToggle';
+import { getSaoPauloDateString } from '@/core/utils/data-helpers';
 import { normalizeContractType } from '@/core/types/galeria';
-import { div } from 'framer-motion/client';
+import { ThemeKey, ThemeSelector } from '@/components/ui/ThemeSelector';
+import { HELP_CONTENT } from '@/core/config/help-content';
+import {
+  MAX_PHOTOS_PER_GALLERY_BY_PLAN,
+  calcEffectiveMaxGalleries,
+} from '@/core/config/plans';
+import type { PlanKey } from '@/core/config/plans';
 
 /** default_type do perfil (contract/event/ensaio) → código (CT/CB/ES) */
 const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
@@ -63,10 +69,10 @@ const DEFAULT_TYPE_TO_CODE: Record<string, GalleryTypeValue> = {
   ensaio: 'ES',
 };
 
-// 🎯 Componente de seção simples (sem accordion) - Estilo Editorial
+// Componente de seção simples — Estilo Editorial
 const FormSection = ({
   title,
-  subtitle, // Nova prop para o subtítulo
+  subtitle,
   icon,
   children,
 }: {
@@ -78,9 +84,8 @@ const FormSection = ({
   <div className="bg-white rounded-luxury border border-slate-400 p-4 space-y-3">
     <div className="flex flex-col gap-1 pb-2 border-b border-slate-200">
       <div className="flex items-center gap-2">
-        {icon && <div className="text-petroleum">{icon}</div>}{' '}
-        {/* Ícones agora em Gold */}
-        <h3 className="text-[10px] font-bold uppercase tracking-luxury-wide text-petroleum dark:text-slate-700">
+        {icon && <div className="text-petroleum">{icon}</div>}
+        <h3 className="text-[10px] font-bold uppercase tracking-luxury-wide text-petroleum">
           {title}
         </h3>
         {subtitle && (
@@ -104,14 +109,24 @@ export default function GaleriaFormContent({
   onTitleChange,
   profile,
   register,
+  errors,
   setValue,
   watch,
+  // ─── Pool de cota ────────────────────────────────────────────────────────
+  // Total de fotos publicadas em TODAS as galerias do usuário.
+  // Usado por GaleriaDriveSection para calcular o impacto desta galeria no
+  // pool dinâmico de galerias (calcEffectiveMaxGalleries).
+  // Fallback 0 para não quebrar enquanto o pai não implementa a prop.
+  usedPhotoCredits = 0,
+  // Número de galerias ativas atualmente.
+  // Fallback 0 para o mesmo motivo.
+  activeGalleryCount = 0,
 }) {
   // =========================================================================
   // 1. REFS E CONTEXTOS
   // =========================================================================
   const defaultsAppliedRef = useRef(false);
-  const { permissions, canAddMore } = usePlan();
+  const { permissions, canAddMore, planKey } = usePlan();
 
   // =========================================================================
   // 2. ESTADOS DE INTERFACE E MODAIS
@@ -121,6 +136,7 @@ export default function GaleriaFormContent({
     feature: string;
   } | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showPoolCapModal, setShowPoolCapModal] = useState(false);
   const [, setLimitInfo] = useState({ count: 0, hasMore: false });
   const [isValidatingDrive, setIsValidatingDrive] = useState(false);
 
@@ -131,7 +147,6 @@ export default function GaleriaFormContent({
   const enableFavorites = watch('enable_favorites');
   const enableSlideshow = watch('enable_slideshow');
 
-  // Helpers para atualização manual se necessário
   const setLeadsEnabled = (val: boolean) =>
     setValue('leads_enabled', val, { shouldDirty: true });
   const setEnableFavorites = (val: boolean) =>
@@ -169,6 +184,51 @@ export default function GaleriaFormContent({
     },
   );
 
+  const [galleryTheme, setGalleryTheme] = useState<ThemeKey>(
+    initialData?.theme_key ||
+      process.env.NEXT_PUBLIC_APP_SEGMENT ||
+      'PHOTOGRAPHER',
+  );
+
+  // Guarda o tema do sistema ao entrar na página; restaura ao sair para não deixar o tema da galeria aplicado no app.
+  // Gravado no primeiro render (antes de qualquer effect) para não capturar o tema de preview do ThemeSelector.
+  const systemThemeOnMountRef = useRef<string | null>(null);
+  if (
+    typeof document !== 'undefined' &&
+    systemThemeOnMountRef.current === null
+  ) {
+    systemThemeOnMountRef.current =
+      document.documentElement.getAttribute('data-theme');
+  }
+
+  useEffect(() => {
+    return () => {
+      const toRestore = systemThemeOnMountRef.current;
+      if (toRestore !== null && toRestore !== undefined) {
+        document.documentElement.setAttribute('data-theme', toRestore);
+      } else {
+        const fallback =
+          typeof localStorage !== 'undefined'
+            ? localStorage.getItem('debug-theme') || 'PHOTOGRAPHER'
+            : 'PHOTOGRAPHER';
+        document.documentElement.setAttribute('data-theme', fallback);
+      }
+    };
+  }, []);
+
+  // Previa temporária do tema: quando o usuário seleciona um tema, ele é exibido por 5s
+  // e depois o sistema volta para o tema original do admin.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const toRestore = systemThemeOnMountRef.current;
+      if (toRestore) {
+        document.documentElement.setAttribute('data-theme', toRestore);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [galleryTheme]);
+
   const [renameFilesSequential, setRenameFilesSequential] = useState(() => {
     if (initialData)
       return (
@@ -186,7 +246,7 @@ export default function GaleriaFormContent({
     return (defaultType && DEFAULT_TYPE_TO_CODE[defaultType]) || 'CT';
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getSaoPauloDateString(new Date());
 
   const [isPublic, setIsPublic] = useState(() => {
     if (initialData)
@@ -209,6 +269,8 @@ export default function GaleriaFormContent({
     coverId: initialData?.cover_image_url ?? '',
     allCovers: initialData?.cover_image_ids || [],
     photoCount: initialData?.photo_count || 0,
+    selectedPhotos: initialData?.photo_count || 0,
+    selectedVideos: 0,
   });
 
   const [links, setLinks] = useState<{ url: string; label: string }[]>(() => {
@@ -236,21 +298,19 @@ export default function GaleriaFormContent({
   );
 
   // =========================================================================
-  // 5. USEEFFECTS (LÓGICA DE INICIALIZAÇÃO E SINCRONIZAÇÃO)
+  // 5. USEEFFECTS
   // =========================================================================
 
-  // 🎯 UNIFICADO: Aplicação de padrões (Novas Galerias) e Edição
   useEffect(() => {
     if (profile?.settings?.defaults && !defaultsAppliedRef.current) {
       if (!isEdit) {
-        // --- MODO CRIAÇÃO: Aplica Padrões do Perfil ---
         const d = profile.settings.defaults;
         setValue('is_public', d.is_public ?? true);
         setValue('show_on_profile', d.list_on_profile ?? false);
         setValue('leads_enabled', d.enable_guest_registration ?? false);
         setValue('lead_purpose', d.data_treatment_purpose ?? '');
-        setValue('enable_favorites', d.enable_favorites ?? true); // 🎯 Preferência Favoritos
-        setValue('enable_slideshow', d.enable_slideshow ?? true); // 🎯 Preferência Slideshow
+        setValue('enable_favorites', d.enable_favorites ?? true);
+        setValue('enable_slideshow', d.enable_slideshow ?? true);
 
         if (setCustomization) {
           setCustomization.setGridBgColor(d.background_color ?? '#FFFFFF');
@@ -262,11 +322,9 @@ export default function GaleriaFormContent({
           });
         }
       } else if (initialData) {
-        // --- MODO EDIÇÃO: Sincroniza com dados existentes ---
         setValue('enable_favorites', initialData.enable_favorites ?? true);
         setValue('enable_slideshow', initialData.enable_slideshow ?? true);
         setValue('leads_enabled', initialData.leads_enabled ?? false);
-        // ... outros campos de edição aqui se necessário
       }
       defaultsAppliedRef.current = true;
     }
@@ -290,26 +348,72 @@ export default function GaleriaFormContent({
     }
   }, [initialData, isEdit]);
 
-  // Constantes de Limite
-  const PLAN_LIMIT = permissions.maxPhotosPerGallery;
+  // =========================================================================
+  // 6. CONSTANTES DERIVADAS
+  // =========================================================================
+  // Hard cap: máximo de fotos por galeria (permite criar até esse valor; acima disso exibe modal de upgrade).
+  const PLAN_HARD_CAP =
+    MAX_PHOTOS_PER_GALLERY_BY_PLAN[(planKey || 'FREE') as PlanKey];
+  // Recomendado: acima disso exibimos aviso de que reduz o número de galerias na cota, mas permitimos criar.
+  const RECOMMENDED_PHOTOS = permissions.recommendedPhotosPerGallery ?? 150;
   const profileRootFolderId =
     profile?.settings?.defaults?.google_drive_root_id || null;
   const canUsePrivate = permissions.privacyLevel !== 'public';
   const canUsePassword = permissions.privacyLevel === 'password';
 
-  // 🎯 PROTEÇÃO: Verifica se useSupabaseSession retorna getAuthDetails corretamente
+  // ─── Pool: créditos usados por OUTRAS galerias ───────────────────────────
+  // Em modo edição, as fotos desta galeria já estão contadas em usedPhotoCredits
+  // (passados pelo pai), portanto subtraímos para evitar dupla contagem.
+  const usedCreditsExcludingThis = isEdit
+    ? Math.max(0, usedPhotoCredits - (initialData?.photo_count ?? 0))
+    : usedPhotoCredits;
+
+  // ─── Pool: galerias ativas excluindo esta em modo edição ─────────────────
+  // Em edição, esta galeria já existe no total — não deve ser contada como "nova".
+  const activeGalleriesExcludingThis = isEdit
+    ? Math.max(0, activeGalleryCount - 1)
+    : activeGalleryCount;
+
+  // ─── Máximo que esta galeria pode ter (teto por galeria e pool) ──────────
+  const totalPool = permissions.photoCredits ?? 0;
+  const poolRemainingCredits = Math.max(0, totalPool - usedPhotoCredits);
+  const maxPhotosForThisGallery = Math.min(
+    PLAN_HARD_CAP,
+    Math.max(0, totalPool - usedCreditsExcludingThis),
+  );
+  const rawPhotoCount = driveData.photoCount ?? 0;
+  const effectivePhotoCount = Math.min(rawPhotoCount, maxPhotosForThisGallery);
+  const isOverPoolCap =
+    rawPhotoCount > maxPhotosForThisGallery && rawPhotoCount <= PLAN_HARD_CAP;
+  const maxGalleriesAfterPoolCap =
+    isOverPoolCap && (planKey as PlanKey)
+      ? calcEffectiveMaxGalleries(
+          (planKey as PlanKey) ?? 'FREE',
+          usedCreditsExcludingThis + effectivePhotoCount,
+          activeGalleriesExcludingThis + 1,
+        )
+      : undefined;
+
   const sessionHook = useSupabaseSession();
   const getAuthDetails = sessionHook?.getAuthDetails;
 
-  /**
-   * 🎯 Função "cérebro": Valida e processa a seleção do Drive
-   * Esta função contém toda a lógica de validação que foi removida do GooglePickerButton
-   */
+  // =========================================================================
+  // 7. HANDLERS
+  // =========================================================================
 
   const handleDriveSelection = async (
-    selectedItems: Array<{ id: string; name: string; parentId?: string }>,
+    selectedItems: Array<{
+      id: string;
+      name: string;
+      parentId?: string;
+      mimeType?: string;
+    }>,
   ) => {
-    // 1. Validação defensiva: Se o usuário fechar o Picker sem selecionar nada
+    // console.log('[handleDriveSelection] Início', {
+    //   selectedCount: selectedItems?.length ?? 0,
+    //   firstItem: selectedItems?.[0],
+    // });
+
     if (
       !selectedItems ||
       !Array.isArray(selectedItems) ||
@@ -322,13 +426,20 @@ export default function GaleriaFormContent({
     setIsValidatingDrive(true);
 
     try {
-      if (!getAuthDetails) {
+      // Evita dependência exclusiva do hook de sessão (que pode oscilar no client):
+      // prioriza o id do perfil já carregado na tela.
+      let userId = profile?.id ?? null;
+      if (!userId && getAuthDetails) {
+        const auth = await getAuthDetails();
+        userId = auth?.userId ?? null;
+      }
+      // console.log('[handleDriveSelection] userId resolvido', {
+      //   profileId: profile?.id ?? null,
+      //   resolvedUserId: userId,
+      // });
+      if (!userId) {
         throw new Error('Sessão expirada. Por favor, faça login novamente.');
       }
-
-      const { userId } = await getAuthDetails();
-
-      // 2. Extração de dados do item principal (o primeiro selecionado)
       const selection = selectedItems[0];
       const selectedId = selection.id;
 
@@ -338,27 +449,29 @@ export default function GaleriaFormContent({
       let driveFolderId: string | null = null;
 
       if (isFolder) {
-        // Se selecionou uma pasta (comum nas abas Sugestões/Estrela), ela é o próprio alvo
         driveFolderId = selection.id;
       } else if (selection.parentId) {
-        // Se selecionou um arquivo e o parentId veio no objeto
         driveFolderId = selection.parentId;
       } else {
-        // Fallback total: busca no servidor
         const parentId = await getParentFolderIdServer(selection.id, userId);
         driveFolderId = parentId || selection.id;
       }
-      // Validação final do ID da pasta para evitar o erro de 'undefined' no console
+
+      // console.log('[handleDriveSelection] Pasta resolvida', {
+      //   selectedId,
+      //   isFolder,
+      //   parentIdFromSelection: selection.parentId ?? null,
+      //   driveFolderId,
+      // });
+
       if (!driveFolderId || driveFolderId === 'undefined') {
         throw new Error(
           'Não foi possível identificar a pasta de origem deste item.',
         );
       }
 
-      // 3. 📸 Captura de IDs para Capas (Suporte a múltiplos arquivos)
       const coverIds = selectedItems.map((item) => item.id);
 
-      // 4. 📂 Busca nome oficial da pasta (para exibir na UI)
       let driveFolderName = selection.name;
       try {
         const folderName = await getDriveFolderName(driveFolderId, userId);
@@ -370,14 +483,18 @@ export default function GaleriaFormContent({
         );
       }
 
-      // 5. ⚖️ Verificação de Limites de Fotos por Galeria (ISR/Vercel Optimization)
       const limitData = await checkFolderLimits(
         driveFolderId,
         userId,
-        permissions.maxPhotosPerGallery,
+        PLAN_HARD_CAP,
+        planKey,
       );
+      // console.log('[handleDriveSelection] checkFolderLimits', {
+      //   driveFolderId,
+      //   planKey,
+      //   limitData,
+      // });
 
-      // 6. 🔒 Verificação de Permissões (LGPD e Segurança de Dados)
       let folderPermissionInfo;
       try {
         folderPermissionInfo = await checkFolderPublicPermission(
@@ -392,44 +509,73 @@ export default function GaleriaFormContent({
         };
       }
 
-      // 🎯 LOG DE DEPURAÇÃO: Útil para o seu monitor de 20"
-      // console.log('DEBUG DRIVE SELECTION:', {
+      // console.log('[handleDriveSelection] checkFolderPublicPermission', {
       //   driveFolderId,
       //   folderPermissionInfo,
-      //   coverIds,
       // });
 
-      // if (!folderPermissionInfo.isOwner) {
-      //   onPickerError(
-      //     'Propriedade inválida: Vincule apenas pastas de sua própria conta.',
-      //   );
-      //   return;
-      // }
+      // 1. Defina o link de ajuda como uma constante
+      const GOOGLE_SHARE_HELP_URL =
+        'https://support.google.com/drive/answer/2494822#zippy=%2Ccompartilhar-um-arquivo-ou-pasta-publicamente';
 
+      // 2. No bloco de verificação de permissão:
       if (!folderPermissionInfo.isPublic) {
+        const errorMessage = (
+          <span>
+            Pasta não pública. Ative o compartilhamento como "Qualquer pessoa
+            com o link" com permissão de Leitor.
+            <a
+              href={GOOGLE_SHARE_HELP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline ml-1 text-blue-400 hover:text-blue-300"
+            >
+              Ver como fazer.
+            </a>
+          </span>
+        );
+
         onPickerError(
-          'Pasta privada: Altere o acesso no Drive para "Qualquer pessoa com o link" antes de vincular.',
+          errorMessage as any, // Cast para any se o seu Toast aceitar apenas strings, ou ajuste a tipagem para ReactNode
           folderPermissionInfo.folderLink,
         );
+
+        console.warn('[handleDriveSelection] BLOQUEADO: pasta não pública', {
+          driveFolderId,
+          folderPermissionInfo,
+        });
         return;
       }
 
-      // 7. ✅ ATUALIZAÇÃO DO ESTADO GLOBAL
       setDriveData({
         id: driveFolderId,
         name: driveFolderName,
-        coverId: coverIds[0], // Capa principal (compatibilidade)
-        allCovers: coverIds, // Array para o novo carrossel de capas
+        coverId: coverIds[0],
+        allCovers: coverIds,
         photoCount: limitData.totalInDrive || limitData.count,
+        selectedPhotos: limitData.selectedPhotos ?? 0,
+        selectedVideos: limitData.selectedVideos ?? 0,
       });
+      // console.log('[handleDriveSelection] setDriveData OK', {
+      //   id: driveFolderId,
+      //   name: driveFolderName,
+      //   coverCount: coverIds.length,
+      //   photoCount: limitData.totalInDrive || limitData.count,
+      // });
 
       setLimitInfo(limitData);
       setPhotoCount(limitData.totalInDrive || limitData.count);
-      const photos = await getFolderPhotos(driveFolderId);
+      await getFolderPhotos(driveFolderId);
+      // console.log('[handleDriveSelection] getFolderPhotos OK', {
+      //   driveFolderId,
+      // });
 
       if (limitData.hasMore) setShowLimitModal(true);
     } catch (error: any) {
-      // console.error('[handleDriveSelection] Erro crítico:', error);
+      // console.error('[handleDriveSelection] ERRO', {
+      //   message: error?.message,
+      //   error,
+      // });
       onPickerError(
         error?.message || 'Erro ao processar a seleção do Google Drive.',
       );
@@ -437,11 +583,8 @@ export default function GaleriaFormContent({
       setIsValidatingDrive(false);
     }
   };
-  /**
-   * 🎯 Handler atualizado para receber o array de docs
-   */
+
   const handleFolderSelect = async (items: any) => {
-    // Verifique o que está chegando aqui com um log
     console.log('Dados chegando no handleFolderSelect:', items);
     return await handleDriveSelection(items);
   };
@@ -460,58 +603,7 @@ export default function GaleriaFormContent({
     useProxyDirectly: true,
   });
 
-  // Track title changes for header
   const [, setTitleValue] = useState(initialData?.title || '');
-
-  // 🎯 5. APLICAÇÃO DOS PADRÕES NO FORMULÁRIO (Efeito de carregamento)
-  useEffect(() => {
-    if (!isEdit && profile?.settings?.defaults && !defaultsAppliedRef.current) {
-      const defaults = profile.settings.defaults;
-
-      // Sincroniza o estado do react-hook-form com os padrões do perfil
-      setValue('is_public', defaults.is_public ?? true, { shouldDirty: false });
-      setValue('show_on_profile', defaults.list_on_profile ?? false, {
-        shouldDirty: false,
-      });
-      setValue('leads_enabled', defaults.enable_guest_registration ?? false, {
-        shouldDirty: false,
-      });
-      setValue('lead_purpose', defaults.data_treatment_purpose ?? '', {
-        shouldDirty: false,
-      });
-
-      setValue('enable_favorites', defaults.enable_favorites ?? true, {
-        shouldDirty: false,
-      });
-      setValue('enable_slideshow', defaults.enable_slideshow ?? true, {
-        shouldDirty: false,
-      });
-      // Design
-      if (setCustomization) {
-        setCustomization.setGridBgColor(defaults.background_color ?? '#FFFFFF');
-        setCustomization.setShowCoverInGrid(!!defaults.background_photo);
-        setCustomization.setColumns({
-          mobile: defaults.grid_mobile ?? 2,
-          tablet: defaults.grid_tablet ?? 3,
-          desktop: defaults.grid_desktop ?? 4,
-        });
-      }
-      defaultsAppliedRef.current = true;
-    }
-  }, [profile, isEdit, setValue, setCustomization]);
-
-  const [toastConfig, setToastConfig] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-
-  // Helper para facilitar a chamada
-  const showToast = (
-    message: string,
-    type: 'success' | 'error' = 'success',
-  ) => {
-    setToastConfig({ message, type });
-  };
 
   return (
     <>
@@ -536,8 +628,6 @@ export default function GaleriaFormContent({
               name="cover_image_url"
               value={driveData.coverId || driveData.id}
             />
-
-            {/* 🎯 NOVO: Array de IDs das fotos de capa selecionadas */}
             <input
               type="hidden"
               name="cover_image_ids"
@@ -546,14 +636,12 @@ export default function GaleriaFormContent({
                   (driveData.coverId ? [driveData.coverId] : []),
               )}
             />
-
-            {/* 🎯 NOVO: Quantidade de fotos para salvar na tb_galerias */}
             <input
               type="hidden"
               name="photo_count"
-              value={driveData.photoCount || 0}
+              value={effectivePhotoCount}
             />
-
+            <input type="hidden" name="theme_key" value={galleryTheme} />
             <input type="hidden" name="is_public" value={String(isPublic)} />
             <input type="hidden" name="category" value={category} />
             <input
@@ -614,16 +702,19 @@ export default function GaleriaFormContent({
               name="rename_files_sequential"
               value={String(renameFilesSequential)}
             />
-
             <input
               type="hidden"
               name="enable_favorites"
-              value={String(enableFavorites)}
+              value={String(
+                permissions.canFavorite === true && enableFavorites,
+              )}
             />
             <input
               type="hidden"
               name="enable_slideshow"
-              value={String(enableSlideshow)}
+              value={String(
+                permissions.canShowSlideshow === true && enableSlideshow,
+              )}
             />
           </div>
 
@@ -631,11 +722,10 @@ export default function GaleriaFormContent({
           {profile?.settings?.display?.show_contract_type !== false && (
             <FormSection
               title="Modalidade"
-              icon={<Settings2 size={14} className="text-gold" />} // Ícone mais genérico de configuração
+              icon={<Settings2 size={16} className="text-gold" />}
             >
               <fieldset>
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-                  {/* Seletor de Tipo */}
                   <div className="md:col-span-4">
                     <GalleryTypeToggle
                       label="Tipo de galeria"
@@ -647,7 +737,6 @@ export default function GaleriaFormContent({
                     />
                   </div>
 
-                  {/* Área Dinâmica baseada no Tipo */}
                   {galleryType === 'CB' ? (
                     <div className="md:col-span-8 h-11 flex items-center px-4 bg-slate-50/50 border border-dashed border-slate-200 rounded-lg">
                       <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400 italic">
@@ -692,87 +781,106 @@ export default function GaleriaFormContent({
           {/* SEÇÃO 2: GALERIA & SINCRONIZAÇÃO */}
           <FormSection
             title="Galeria & Sincronização"
-            icon={<FolderSync size={14} className="text-gold" />}
+            icon={<FolderSync size={16} className="text-gold" />}
           >
-            <fieldset>
-              {/* Detalhes da Galeria - Primeira Linha */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <Type size={12} className="text-gold" /> Título
-                  </label>
-                  <input
-                    name="title"
-                    defaultValue={initialData?.title}
-                    required
-                    placeholder="Ex: Wedding Day"
-                    onChange={(e) => {
-                      setTitleValue(e.target.value);
-                      onTitleChange?.(e.target.value);
-                    }}
-                    className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
-                  />
+            <fieldset className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* COLUNA ESQUERDA: Dados Técnicos (6 de 12 colunas) */}
+              <div className="lg:col-span-6 space-y-4">
+                {/* Linha: Título e Categoria */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <Type size={12} className="text-gold" /> Título
+                    </label>
+                    <input
+                      name="title"
+                      defaultValue={initialData?.title}
+                      required
+                      placeholder="Ex: Wedding Day"
+                      onChange={(e) => {
+                        setTitleValue(e.target.value);
+                        onTitleChange?.(e.target.value);
+                      }}
+                      className="w-full px-3 h-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium outline-none focus:border-gold transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <Tag size={12} className="text-gold" /> Categoria
+                    </label>
+                    <CategorySelect
+                      value={category}
+                      onChange={setCategory}
+                      initialCustomCategories={customCategoriesFromProfile}
+                    />
+                  </div>
                 </div>
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <Tag size={12} className="text-gold" /> Categoria
-                  </label>
-                  <CategorySelect
-                    value={category}
-                    onChange={setCategory}
-                    initialCustomCategories={customCategoriesFromProfile} // Dados vindos do JSON do banco
-                  />
+
+                {/* Linha: Data e Local */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <Calendar
+                        size={12}
+                        strokeWidth={2}
+                        className="text-gold"
+                      />{' '}
+                      Data
+                    </label>
+                    <input
+                      name="date"
+                      type="date"
+                      defaultValue={initialData?.date}
+                      required
+                      className="input-luxury w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                      <MapPin size={12} className="text-gold" /> Local
+                    </label>
+                    <input
+                      name="location"
+                      defaultValue={initialData?.location}
+                      placeholder="Cidade/UF"
+                      className="input-luxury w-full"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Segunda Linha */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-3">
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <Calendar
-                      size={12}
-                      strokeWidth={2}
-                      className=" text-gold"
-                    />{' '}
-                    Data
-                  </label>
-                  <input
-                    name="date"
-                    type="date"
-                    defaultValue={initialData?.date}
-                    required
-                    className="input-luxury"
-                  />
-                </div>
-                <div className="md:col-span-6">
-                  <label className="mb-1.5">
-                    <MapPin size={12} className="text-gold" /> Local
-                  </label>
-                  <input
-                    name="location"
-                    defaultValue={initialData?.location}
-                    placeholder="Cidade/UF"
-                    className="input-luxury"
-                  />
-                </div>
+              {/* COLUNA DIREITA: Descrição (6 de 12 colunas) */}
+              <div className="lg:col-span-6 flex flex-col">
+                <label className="mb-1.5 flex items-center gap-1.5">
+                  <FileText size={12} className="text-gold shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-petroleum">
+                    Descrição
+                  </span>
+                </label>
+                <textarea
+                  {...register('description')}
+                  placeholder="Escreva uma breve introdução ou detalhes sobre esta galeria"
+                  className="flex-1 w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-light leading-relaxed outline-none focus:border-gold focus:ring-4 focus:ring-gold/5 transition-all resize-none min-h-[120px] placeholder:text-slate-400"
+                />
+                <p className="mt-2 text-[10px] text-slate-400 italic">
+                  A descrição aparecerá no topo da galeria pública, abaixo do
+                  título.
+                </p>
               </div>
             </fieldset>
           </FormSection>
-
           {/* SEÇÃO 3: PRIVACIDADE */}
           <FormSection
             title="Privacidade"
-            icon={<ShieldCheck size={14} className="text-gold" />}
+            icon={<ShieldCheck size={16} className="text-gold" />}
           >
             <fieldset className="w-full">
-              {/* Flex-row para alinhar os cards, mantendo-os fixos e proporcionais */}
               <div className="flex flex-wrap items-stretch gap-2 w-full">
-                {/* CARD 1: ACESSO (O maior, com PIN fixo) */}
                 <div className="flex-[1.8] flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full">
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
                       <Shield
-                        size={14}
+                        size={16}
                         className={
                           !isPublic ? 'text-gold' : 'text-petroleum/40'
                         }
@@ -780,35 +888,37 @@ export default function GaleriaFormContent({
                       Acesso
                     </label>
                     <InfoTooltip
-                      content="Para acessar uma galeria protegida por senha, o visitante deve informar a senha cadastrada nesta tela. Sem senha, qualquer pessoa com o link pode acessar. Com senha, apenas quem informar a senha correta terá acesso."
-                      title="Acesso"
+                      title={HELP_CONTENT.GALLERY.ACCESS.title}
+                      content={HELP_CONTENT.GALLERY.ACCESS.content}
                     />
                   </div>
+                  <PlanGuard
+                    feature="privacyLevel"
+                    label="Senha"
+                    variant="mini"
+                    scenarioType="feature"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex bg-slate-100 rounded-[0.4rem] p-0.5 gap-0.5 w-[150px] shrink-0 h-9">
+                        <button
+                          type="button"
+                          onClick={() => setIsPublic(true)}
+                          className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${isPublic ? 'bg-champagne shadow-sm' : 'text-slate-400'}`}
+                        >
+                          Público
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsPublic(false)}
+                          className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${!isPublic ? 'bg-champagne shadow-sm' : 'text-petroleum/60'}`}
+                        >
+                          Privado
+                        </button>
+                      </div>
 
-                  <div className="flex items-center gap-3">
-                    {/* Toggle fixo em 120px */}
-                    <div className="flex bg-slate-100 rounded-[0.4rem] p-0.5 gap-0.5 w-[150px] shrink-0 h-9">
-                      <button
-                        type="button"
-                        onClick={() => setIsPublic(true)}
-                        className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${isPublic ? 'bg-champagne shadow-sm' : 'text-slate-400'}`}
+                      <div
+                        className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'grayscale pointer-events-none' : 'opacity-100'}`}
                       >
-                        Público
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsPublic(false)}
-                        className={`flex-1 rounded-[0.3rem] text-[10px] font-semibold uppercase tracking-tighter ${!isPublic ? 'bg-champagne shadow-sm' : 'text-petroleum/60'}`}
-                      >
-                        Privado
-                      </button>
-                    </div>
-
-                    {/* PIN fixo em 100px para o ícone do olho não vazar */}
-                    <div
-                      className={`flex items-center gap-1 transition-all duration-300 w-[100px] ${isPublic ? 'opacity-20 grayscale pointer-events-none' : 'opacity-100'}`}
-                    >
-                      <PlanGuard feature="privacyLevel" label="Senha">
                         <PasswordInput
                           name="password"
                           disabled={isPublic}
@@ -817,59 +927,110 @@ export default function GaleriaFormContent({
                           className="h-9"
                           style={{ width: '64px', minWidth: '64px' }}
                         />
-                      </PlanGuard>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* CARD 2: EXPIRAÇÃO */}
-                <div className="flex-1 flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full gap-2">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <label>
-                      <Calendar size={14} className="text-gold" />
-                      Expiração
-                    </label>
-                    <InfoTooltip
-                      content="Se ativada, a galeria ficará indisponível para acesso após esta data."
-                      title="Expiração"
-                    />
-                  </div>
-
-                  <PlanGuard feature="expiresAt" label="Expiração">
-                    <input
-                      type="date"
-                      name="expires_at"
-                      min={today}
-                      defaultValue={
-                        initialData?.expires_at
-                          ? String(initialData.expires_at).slice(0, 10)
-                          : ''
-                      }
-                      disabled={!permissions.expiresAt}
-                      className="input-luxury w-[115px] !px-2"
-                    />
                   </PlanGuard>
                 </div>
 
-                {/* CARD 3: NO PERFIL (Compacto e sem vácuo) */}
+                <div className="flex-1 flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14 w-full gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label>
+                      <Calendar size={16} className="text-gold" />
+                      Expiração
+                    </label>
+
+                    <InfoTooltip
+                      title={HELP_CONTENT.GALLERY.EXPIRATION.title}
+                      content={HELP_CONTENT.GALLERY.EXPIRATION.content}
+                    />
+                  </div>
+
+                  <PlanGuard
+                    feature="expiresAt"
+                    label="Expiração"
+                    variant="mini"
+                    scenarioType="feature"
+                  >
+                    <div className="flex flex-col items-end gap-1">
+                      <input
+                        type="date"
+                        {...register('expires_at', {
+                          minLength: {
+                            value: 10,
+                            message: 'Data incompleta',
+                          },
+                          maxLength: {
+                            value: 10,
+                            message: 'Data inválida',
+                          },
+                          validate: (value) => {
+                            if (!value) return true;
+                            const [year, month, day] = value
+                              .split('-')
+                              .map(Number);
+                            const selectedDate = new Date(year, month - 1, day);
+
+                            // Usar a data atual em São Paulo para comparação
+                            const todayStr = getSaoPauloDateString(new Date());
+                            const [todayYear, todayMonth, todayDay] = todayStr
+                              .split('-')
+                              .map(Number);
+                            const todayDate = new Date(
+                              todayYear,
+                              todayMonth - 1,
+                              todayDay,
+                            );
+
+                            todayDate.setHours(0, 0, 0, 0);
+                            selectedDate.setHours(0, 0, 0, 0);
+
+                            if (selectedDate < todayDate) {
+                              return 'A expiração não pode ser anterior a hoje';
+                            }
+                            return true;
+                          },
+                        })}
+                        min={today}
+                        disabled={!permissions.expiresAt}
+                        className={`input-luxury w-[115px] !px-2 ${
+                          errors?.expires_at
+                            ? 'border-red-500 text-red-600 bg-red-50'
+                            : ''
+                        }`}
+                      />
+                      {errors?.expires_at && (
+                        <span className="text-[9px] text-red-500 font-bold animate-in fade-in slide-in-from-top-1 whitespace-nowrap">
+                          {errors.expires_at.message as string}
+                        </span>
+                      )}
+                    </div>
+                  </PlanGuard>
+                </div>
+
                 <div className="flex-none w-full md:w-[230px] flex items-center justify-between p-3 bg-slate-50/50 rounded-luxury border border-petroleum/10 h-14">
                   <div className="flex items-center gap-2 shrink-0">
                     <label>
                       <Eye
-                        size={14}
+                        size={16}
                         className={
                           showOnProfile ? 'text-gold' : 'text-petroleum/40'
                         }
                       />
                       Listar no Perfil
                     </label>
+
                     <InfoTooltip
-                      content="Se ativado, esta galeria será visível na sua página de perfil pública para todos os visitantes."
-                      title="Listar no Perfil"
+                      title={HELP_CONTENT.GALLERY.PROFILE_LIST.title}
+                      content={HELP_CONTENT.GALLERY.PROFILE_LIST.content}
                     />
                   </div>
 
-                  <PlanGuard feature="profileLevel" label="Perfil">
+                  <PlanGuard
+                    feature="profileLevel"
+                    label="Perfil"
+                    variant="mini"
+                    scenarioType="feature"
+                  >
                     <button
                       type="button"
                       onClick={() => setShowOnProfile(!showOnProfile)}
@@ -885,11 +1046,10 @@ export default function GaleriaFormContent({
             </fieldset>
           </FormSection>
 
-          {/* SEÇÃO NOVA: CAPTURA DE LEADS */}
-
+          {/* SEÇÃO: CADASTRO DE VISITANTE */}
           <FormSection
             title="Cadastro de visitante"
-            icon={<Users size={14} className="text-gold" />}
+            icon={<Users size={16} className="text-gold" />}
           >
             <fieldset>
               <LeadCaptureSection
@@ -910,12 +1070,11 @@ export default function GaleriaFormContent({
             </fieldset>
           </FormSection>
 
-          {/* SEÇÃO 4: CUSTOMIZAÇÃO VISUAL */}
-
+          {/* SEÇÃO: DESIGN DA GALERIA */}
           <FormSection
             title="Design da Galeria"
             subtitle="Personalize a experiência visual do visitante"
-            icon={<Layout size={14} className="text-gold" />}
+            icon={<Layout size={16} className="text-gold" />}
           >
             <fieldset>
               <GalleryDesignFields
@@ -928,11 +1087,12 @@ export default function GaleriaFormContent({
               />
             </fieldset>
           </FormSection>
-          {/* SEÇÃO: INTERAÇÃO (Experiência do Visitante) */}
+
+          {/* SEÇÃO: INTERAÇÃO & EXPERIÊNCIA */}
           <FormSection
             title="Interação & Experiência"
             subtitle="Recursos para o visitante usar na galeria"
-            icon={<PlayCircle size={14} className="text-gold" />}
+            icon={<PlayCircle size={16} className="text-gold" />}
           >
             <fieldset>
               <GalleryInteractionFields
@@ -946,8 +1106,8 @@ export default function GaleriaFormContent({
         </div>
 
         {/* COLUNA LATERAL (35%) */}
-        <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-slate-200 pl-0 lg:pl-2 space-y-4 bg-slate-50/30  px-2 pb-6">
-          {/* GOOGLE DRIVE - Seção Principal */}
+        <div className="w-full lg:w-[35%] border-t lg:border-t-0 lg:border-l border-slate-200 pl-0 lg:pl-2 space-y-4 bg-slate-50/30 px-2 pb-6">
+          {/* GOOGLE DRIVE */}
           <GaleriaDriveSection
             driveData={driveData}
             handleFolderSelect={handleFolderSelect}
@@ -956,21 +1116,50 @@ export default function GaleriaFormContent({
             isValidatingDrive={isValidatingDrive}
             renameFilesSequential={renameFilesSequential}
             setRenameFilesSequential={setRenameFilesSequential}
-            setDriveData={setDriveData}
+            setDriveData={(data: any) =>
+              setDriveData((prev) => ({ ...prev, ...data }))
+            }
             rootFolderId={profileRootFolderId}
+            // ── Pool de cota (fonte da verdade: SUM(photo_count) em tb_galerias, não arquivadas/deletadas) ──
+            // usedCreditsExcludingThis = total usado nas outras galerias; em edição já subtraímos esta galeria.
+            usedPhotoCredits={usedCreditsExcludingThis}
+            activeGalleryCount={activeGalleriesExcludingThis}
+            maxPhotosByPool={maxPhotosForThisGallery}
+            poolRemainingCredits={poolRemainingCredits}
+            planHardCap={PLAN_HARD_CAP}
+            isOverHardCap={showLimitModal}
           />
 
-          {/*LINKS E ARQUIVOS */}
+          {/* TEMA VISUAL — aplica na página inteira para preview; ao sair da página o tema é restaurado pelo effect de cleanup */}
           <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-              <Download size={14} className="text-gold" />
+              <Sparkles size={16} className="text-gold" />
               <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
-                links e arquivos de entrega
+                Tema Visual
+              </h3>
+            </div>
+            <ThemeSelector
+              currentTheme={galleryTheme}
+              onConfirm={(theme) => {
+                setGalleryTheme(theme);
+                // O onConfirm da galeria é assíncrono e já tem o timeout
+                // para o estado de "salvando"
+              }}
+              confirmLabel="Aplicar à Galeria"
+              compact
+            />
+          </div>
+
+          {/* LINKS E ARQUIVOS */}
+          <div className="bg-white rounded-luxury border border-slate-200 p-4 space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <Download size={16} className="text-gold" />
+              <h3 className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum">
+                links externos
               </h3>
             </div>
 
             <div className="space-y-4">
-              {/* input oculto para persistência em JSON */}
               <input
                 type="hidden"
                 name="zip_url_full"
@@ -999,7 +1188,6 @@ export default function GaleriaFormContent({
                     </div>
 
                     <div className="flex flex-row items-center gap-2">
-                      {/* 🎯 Uso do Mini PlanGuard no Input de Label */}
                       <div className="w-[30%]">
                         <PlanGuard
                           feature="canCustomLinkLabel"
@@ -1023,7 +1211,6 @@ export default function GaleriaFormContent({
                         </PlanGuard>
                       </div>
 
-                      {/* Input de URL - 70% de largura (Sempre liberado por padrão) */}
                       <div className="relative w-[70%]">
                         <input
                           type="url"
@@ -1051,51 +1238,68 @@ export default function GaleriaFormContent({
                 ))}
               </div>
 
-              <button
-                type="button"
-                className="btn-luxury-primary text-[9px]"
-                onClick={() => {
-                  if (canAddMore('maxExternalLinks', links.length)) {
-                    setLinks([
-                      ...links,
-                      { url: '', label: `LINK ${links.length + 1}` },
-                    ]);
-                  } else {
-                    setUpsellFeature({
-                      label: 'Mais Links de Entrega',
-                      feature: 'maxExternalLinks',
-                    });
-                  }
-                }}
+              <PlanGuard
+                feature="maxExternalLinks"
+                label="Links de entrega"
+                variant="mini"
+                scenarioType="feature"
               >
-                {canAddMore('maxExternalLinks', links.length) ? (
-                  <>
-                    <Plus size={14} /> adicionar link
-                  </>
-                ) : (
-                  <>
-                    <Lock size={14} className="text-gold" /> Limite atingido
-                    (Upgrade)
-                  </>
-                )}
-              </button>
+                <button
+                  type="button"
+                  className="btn-luxury-primary text-[9px] px-2"
+                  onClick={() => {
+                    if (canAddMore('maxExternalLinks', links.length)) {
+                      setLinks([
+                        ...links,
+                        { url: '', label: `LINK ${links.length + 1}` },
+                      ]);
+                    } else {
+                      setUpsellFeature({
+                        label: 'Mais Links de Entrega',
+                        feature: 'maxExternalLinks',
+                      });
+                    }
+                  }}
+                >
+                  {canAddMore('maxExternalLinks', links.length) ? (
+                    <>
+                      <Plus size={16} /> Novo link
+                    </>
+                  ) : (
+                    <>
+                      <Lock size={16} className="text-gold" /> Limite atingido
+                      (Upgrade)
+                    </>
+                  )}
+                </button>
+              </PlanGuard>
             </div>
           </div>
         </div>
 
         <LimitUpgradeModal
           isOpen={showLimitModal}
-          photoCount={photoCount}
+          photoCount={photoCount ?? 0}
           onClose={() => setShowLimitModal(false)}
-          planLimit={PLAN_LIMIT}
+          planLimit={PLAN_HARD_CAP}
+        />
+        <LimitUpgradeModal
+          isOpen={showPoolCapModal}
+          onClose={() => setShowPoolCapModal(false)}
+          planLimit={maxPhotosForThisGallery}
+          photoCount={rawPhotoCount}
+          variant="pool"
+          maxGalleriesAfter={maxGalleriesAfterPoolCap}
         />
       </div>
-      {/* Renderização do seu componente Toast customizado */}
-      {toastConfig && (
-        <Toast
-          message={toastConfig.message}
-          type={toastConfig.type}
-          onClose={() => setToastConfig(null)}
+
+      {upsellFeature && (
+        <UpgradeModal
+          isOpen={!!upsellFeature}
+          onClose={() => setUpsellFeature(null)}
+          featureName={upsellFeature.label}
+          featureKey={upsellFeature.feature as any}
+          scenarioType="limit"
         />
       )}
     </>

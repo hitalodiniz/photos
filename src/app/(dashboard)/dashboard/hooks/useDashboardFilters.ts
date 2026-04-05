@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Galeria } from '@/core/types/galeria';
 import { normalizeContractType } from '@/core/types/galeria';
 import { normalizeString } from '@/core/utils/string-helpers';
@@ -17,12 +17,19 @@ export function useDashboardFilters(galerias: Galeria[]) {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState('');
 
+  // 🎯 FIX: Reseta cardsToShow quando muda de view
+  useEffect(() => {
+    setCardsToShow(CARDS_PER_PAGE);
+  }, [currentView]);
+
   const counts = useMemo(
     () => ({
-      active: (galerias || []).filter((g) => !g.is_archived && !g.is_deleted)
-        .length,
-      archived: (galerias || []).filter((g) => g.is_archived && !g.is_deleted)
-        .length,
+      active: (galerias || []).filter(
+        (g) => !g.is_archived && !g.is_deleted && !g.auto_archived,
+      ).length,
+      archived: (galerias || []).filter(
+        (g) => (g.is_archived || g.auto_archived) && !g.is_deleted,
+      ).length,
       trash: (galerias || []).filter((g) => g.is_deleted).length,
     }),
     [galerias],
@@ -34,7 +41,7 @@ export function useDashboardFilters(galerias: Galeria[]) {
     const locationLower = normalizeString(filterLocation);
 
     return galerias.filter((g) => {
-      const isArchived = Boolean(g.is_archived);
+      const isArchived = Boolean(g.is_archived || g.auto_archived);
       const isDeleted = Boolean(g.is_deleted);
       if (currentView === 'active' && (isArchived || isDeleted)) return false;
       if (currentView === 'archived' && (!isArchived || isDeleted))

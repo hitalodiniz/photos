@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import { authService } from './auth.service';
 import { supabase } from '@/lib/supabase.client';
 
@@ -69,7 +70,7 @@ describe('AuthService (Cobertura Total 100%)', () => {
     });
 
     it('deve disparar refreshSession se a sessão expirar em menos de 5 minutos', async () => {
-      const futureDate = Math.floor(Date.now() / 1000) + 100; // expira em 100s
+      const futureDate = Math.floor(nowFn().getTime() / 1000) + 100; // expira em 100s
       const mockSession = { expires_at: futureDate, access_token: 'old' };
       const newSession = { expires_at: futureDate + 3600, access_token: 'new' };
 

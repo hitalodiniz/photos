@@ -1,6 +1,7 @@
 // @/core/services/__tests__/galeria-limits.service.spec.ts
 import './setup-mocks';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import {
   archiveExceedingGalleries,
   purgeOldDeletedGalleries,
@@ -250,14 +251,14 @@ describe('Galeria Service - Limits & Sync', () => {
 
       mockQueryBuilder.lt.mockResolvedValue({ data: [], error: null });
 
-      const before = new Date();
+      const before = nowFn();
       before.setDate(before.getDate() - 30);
 
       await purgeOldDeletedGalleries(mockSupabase);
 
       const ltCall = mockQueryBuilder.lt.mock.calls[0];
       const cutoffArg = new Date(ltCall[1]);
-      const after = new Date();
+      const after = nowFn();
       after.setDate(after.getDate() - 30);
 
       // Margem de 5 segundos para evitar flakiness por timing

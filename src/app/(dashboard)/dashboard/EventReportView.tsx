@@ -14,6 +14,9 @@ import {
   Zap,
   TableIcon,
   Heart,
+  BarChart2,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { RelatorioBasePage, LoadingScreen } from '@/components/ui';
@@ -32,10 +35,14 @@ import {
 import InteractiveChart from '@/components/ui/InteractiveChart';
 import { TrafficInfoCard } from '@/components/dashboard/TrafficInfoCard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { usePlan } from '@/core/context/PlanContext';
+import { PlanGateScreen } from '@/components/ui/PlanGateScreen';
+import { HELP_CONTENT } from '@/core/config/help-content';
 
 // --- VIEW PRINCIPAL ---
 export default function EventReportView({ galeria }: any) {
   const router = useRouter();
+  const { permissions } = usePlan();
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +51,11 @@ export default function EventReportView({ galeria }: any) {
 
   useEffect(() => {
     async function loadData() {
+      if (!permissions.canAccessStats) {
+        // ← só carrega se tiver acesso
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const result = await getGaleriaEventReport(galeria.id);
@@ -55,7 +67,7 @@ export default function EventReportView({ galeria }: any) {
       }
     }
     loadData();
-  }, [galeria.id]);
+  }, [galeria.id, permissions.canAccessStats]);
 
   const rawEvents = reportData?.rawEvents || [];
   const events = useMemo(() => {
@@ -142,6 +154,48 @@ export default function EventReportView({ galeria }: any) {
   if (loading)
     return <LoadingScreen message="Gerando estatísticas da galeria..." />;
 
+  // ← Gate de plano — antes do return principal
+  if (!permissions.canAccessStats) {
+    return (
+      <RelatorioBasePage
+        title={`Estatísticas - ${galeria.title}`}
+        onBack={() => router.back()}
+      >
+        <PlanGateScreen
+          feature="canAccessStats"
+          title="Estatísticas de Galeria"
+          description="Veja quantas pessoas acessaram sua galeria, de onde vieram, quais dispositivos usaram, o que baixaram e muito mais. Dados reais para tomar decisões melhores."
+          teasers={[
+            {
+              icon: Users,
+              label: 'Visitantes únicos',
+              value: '---',
+              hint: 'aguardando',
+            },
+            {
+              icon: Download,
+              label: 'Downloads',
+              value: '---',
+              hint: 'registrados',
+            },
+            {
+              icon: TrendingUp,
+              label: 'Compartilhamentos',
+              value: '---',
+              hint: 'via WhatsApp',
+            },
+            {
+              icon: BarChart2,
+              label: 'Eventos totais',
+              value: '---',
+              hint: 'capturados',
+            },
+          ]}
+        />
+      </RelatorioBasePage>
+    );
+  }
+
   return (
     <RelatorioBasePage
       title={`Estatísticas - ${galeria.title}`}
@@ -152,17 +206,17 @@ export default function EventReportView({ galeria }: any) {
             onClick={() =>
               exportToCSV(events, 'Estatísticas - ' + galeria.title)
             }
-            className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
+            className="btn-secondary-white w-28"
           >
-            <FileText size={14} /> CSV
+            <FileText size={16} /> CSV
           </button>
           <button
             onClick={() =>
               exportToExcel(events, 'Estatísticas - ' + galeria.title)
             }
-            className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
+            className="btn-secondary-white w-28"
           >
-            <TableIcon size={14} /> EXCEL
+            <TableIcon size={16} /> EXCEL
           </button>
           <button
             onClick={() =>
@@ -172,9 +226,9 @@ export default function EventReportView({ galeria }: any) {
                 'Relatório - ' + galeria.title,
               )
             }
-            className="btn-luxury-primary px-4 flex items-center gap-2 text-[12px] font-semibold"
+            className="btn-luxury-primary w-28"
           >
-            <FileDown size={14} /> PDF
+            <FileDown size={16} /> PDF
           </button>
         </div>
       }
@@ -251,8 +305,8 @@ export default function EventReportView({ galeria }: any) {
                 Downloads Completos
               </p>
               <InfoTooltip
-                title="Downloads Completos"
-                content="Downloads de todas as fotos da galeria por arquivo ZIP, mesmo que sejam favoritas."
+                title={HELP_CONTENT.REPORTS.FULL_DOWNLOAD.title}
+                content={HELP_CONTENT.REPORTS.FULL_DOWNLOAD.content}
               />
               <p className="text-lg font-semibold text-petroleum leading-none">
                 {stats.downloads}
@@ -269,10 +323,12 @@ export default function EventReportView({ galeria }: any) {
               <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1 text-center">
                 Downloads Favoritas
               </p>
+
               <InfoTooltip
-                title="Downloads Favoritas"
-                content="Downloads de fotos favoritas do visitante por arquivo ZIP."
+                title={HELP_CONTENT.REPORTS.FAV_DOWNLOAD.title}
+                content={HELP_CONTENT.REPORTS.FAV_DOWNLOAD.content}
               />
+
               <p className="text-lg font-semibold text-petroleum leading-none">
                 {stats.downloadFavorites}
               </p>
@@ -284,9 +340,10 @@ export default function EventReportView({ galeria }: any) {
               <p className="text-[8px] font-semibold text-slate-400 uppercase leading-none mb-1 text-center">
                 Compartilhamentos
               </p>
+
               <InfoTooltip
-                title="Compartilhamentos"
-                content="Compartilhamentos da galeria pelo visitante através de WhatsApp."
+                title={HELP_CONTENT.REPORTS.SHARE.title}
+                content={HELP_CONTENT.REPORTS.SHARE.content}
               />
               <p className="text-lg font-semibold text-petroleum leading-none">
                 {stats.shares}
@@ -445,7 +502,6 @@ export default function EventReportView({ galeria }: any) {
       </div>
       <EventDetailsSheet
         event={selectedEvent}
-        allEvents={events}
         onClose={() => setSelectedEvent(null)}
       />
     </RelatorioBasePage>

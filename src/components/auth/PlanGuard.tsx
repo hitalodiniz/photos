@@ -20,7 +20,62 @@ interface PlanGuardProps {
   infoExtra?: string;
   scenarioType?: 'limit' | 'feature';
   forceShowLock?: boolean;
-  variant?: 'default' | 'mini';
+  variant?: 'default' | 'mini' | 'tiny';
+}
+
+/**
+ * 🛡️ Determina se o plano atual tem acesso ao feature.
+ *
+ * Trata 3 categorias de feature:
+ *  - boolean / number       → lógica simples
+ *  - hierarchical strings   → requer mapeamento explícito (ver HIERARCHY_ACCESS)
+ *  - qualquer outro valor   → truthy/falsy
+ *
+ * customizationLevel é boolean (true/false) no plano; não usa hierarquia.
+ */
+
+// Planos que possuem o nível MÍNIMO de cada feature hierárquica.
+// customizationLevel NÃO está aqui — é tratado como boolean abaixo.
+const HIERARCHY_ACCESS: Partial<
+  Record<keyof PlanPermissions, (val: any) => boolean>
+> = {
+  // 'basic' é o mínimo → bloqueia. 'standard' ou acima → libera.
+  profileLevel: (val) => val !== 'basic',
+
+  // 'public' é o mínimo → bloqueia (não permite senha/expiração). 'private' ou acima → libera.
+  privacyLevel: (val) => val !== 'public',
+
+  // 'minimal' é o mínimo → bloqueia.
+  socialDisplayLevel: (val) => val !== 'minimal',
+
+  // 'manual' é o mínimo → bloqueia.
+  tagSelectionMode: (val) => val !== 'manual',
+};
+
+function resolveAccess(
+  feature: keyof PlanPermissions,
+  permissions: PlanPermissions,
+  forceShowLock: boolean,
+): boolean {
+  if (forceShowLock) return false;
+
+  const val = permissions[feature];
+
+  // Verifica se é uma feature hierárquica com mapeamento definido
+  const hierarchyChecker = HIERARCHY_ACCESS[feature];
+  if (hierarchyChecker) return hierarchyChecker(val);
+
+  // Features numéricas: tem acesso se o limite for > 0
+  if (typeof val === 'number') return val > 0;
+
+  // Features booleanas
+  if (typeof val === 'boolean') return val;
+
+  // Strings especiais
+  if (val === 'unlimited') return true;
+
+  // Fallback: qualquer valor truthy
+  return !!val;
 }
 
 export function PlanGuard({
@@ -39,17 +94,10 @@ export function PlanGuard({
   const featureInfo = FEATURE_DESCRIPTIONS[feature];
   const displayLabel = label || featureInfo?.label || 'Recurso Premium';
   const displayDescription =
-    featureInfo?.description || 'Faça upgrade para liberar este recurso.';
+    featureInfo?.description ||
+    'Faça upgrade do seu plano para liberar este recurso.';
 
-  const hasAccess = (() => {
-    if (forceShowLock) return false;
-    const val = permissions[feature];
-    if (typeof val === 'number') return val > 0;
-    if (typeof val === 'boolean') return val === true;
-    if (val === 'unlimited') return true;
-    if (['default', 'basic', 'minimal'].includes(val as string)) return false;
-    return !!val;
-  })();
+  const hasAccess = resolveAccess(feature, permissions, forceShowLock);
 
   const requiredPlan = useMemo(() => {
     if (hasAccess) return null;
@@ -59,6 +107,7 @@ export function PlanGuard({
   if (hasAccess) return <>{children}</>;
 
   const isMini = variant === 'mini';
+  const isTiny = variant === 'tiny';
 
   const upgradeMessage = requiredPlan
     ? `Disponível no Plano ${requiredPlan} ou superior`
@@ -68,7 +117,7 @@ export function PlanGuard({
     <>
       <div
         className={`relative transition-all duration-500 ${
-          isMini
+          isMini || isTiny
             ? 'rounded-md'
             : 'rounded-luxury border border-gold/20 p-4 bg-slate-50/10'
         }`}
@@ -86,33 +135,36 @@ export function PlanGuard({
             e.stopPropagation();
             setIsUpgradeModalOpen(true);
           }}
-          className="absolute inset-0 z-[1001] cursor-pointer bg-transparent"
+          className="absolute inset-0 z-[10] cursor-pointer bg-transparent"
         />
 
         {/* 3. UI DE BLOQUEIO */}
-        {/* 🎯 Ajuste: Adicionado pointer-events-none no container pai, 
-            mas pointer-events-auto nos elementos internos que precisam de hover */}
-        <div className="absolute inset-0 z-[1002] pointer-events-none flex items-center justify-center">
-          {isMini ? (
+        <div className="absolute inset-0 z-[10] pointer-events-none flex items-center justify-center">
+          {isTiny ? (
+            <div className="absolute -top-1 -right-1 bg-petroleum p-1 rounded-full shadow-md border border-gold/30">
+              <Lock size={8} className="text-champagne" strokeWidth={3} />
+            </div>
+          ) : isMini ? (
             <div className="flex items-center gap-2">
-              <div className="bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">
-                <Lock size={10} className="text-gold" strokeWidth={3} />
+              <div className="bg-petroleum backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-gold/30">
+                <Lock size={12} className="text-champagne" strokeWidth={3} />
               </div>
-              {infoExtra && (
-                // 🎯 O container do tooltip precisa de pointer-events-auto
-                // para que o 'group-hover' do InfoTooltip funcione
-                <div className="animate-in fade-in zoom-in duration-300 z-[1004] pointer-events-auto">
-                  <InfoTooltip content={infoExtra} align="left" />
-                </div>
-              )}
+
+              <div className="animate-in fade-in zoom-in duration-300 z-[1004] pointer-events-auto">
+                <InfoTooltip
+                  title={displayLabel}
+                  content={upgradeMessage}
+                  align="left"
+                />
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <div className="bg-white p-2 rounded-full shadow-2xl border border-gold/30 flex items-center justify-center shrink-0">
-                <Lock size={14} className="text-gold" strokeWidth={3} />
+              <div className="bg-petroleum p-2 rounded-full shadow-2xl border border-gold/30 flex items-center justify-center shrink-0">
+                <Lock size={16} className="text-champagne" strokeWidth={3} />
               </div>
               <div className="flex flex-col items-center">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-petroleum leading-tight drop-shadow-sm">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-petroleum leading-tight drop-shadow-sm">
                   {displayLabel}
                 </span>
                 {infoExtra && (
@@ -129,7 +181,7 @@ export function PlanGuard({
         </div>
 
         {/* 4. BADGE DE PLANO */}
-        {requiredPlan && !isMini && (
+        {requiredPlan && !isMini && !isTiny && (
           <div
             className={`absolute z-[1003] flex items-center bg-petroleum rounded-full border border-gold/30 shadow-lg pointer-events-none
             top-3 right-3 px-2.5 py-1`}

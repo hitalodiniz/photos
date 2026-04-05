@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,7 +25,6 @@ import { UserSettingsSchema } from '@/core/types/profile';
 import { updateProfileSettings } from '@/core/services/profile.service';
 
 import { usePlan } from '@/core/context/PlanContext';
-import { Toast } from '@/components/ui';
 import FormPageBase from '@/components/ui/FormPageBase';
 import { LeadCaptureSection } from '@/components/ui/LeadCaptureSection';
 import { PlanGuard } from '@/components/auth/PlanGuard';
@@ -51,6 +50,7 @@ const CODE_TO_DEFAULT_TYPE: Record<
   CB: 'event',
   ES: 'ensaio',
 };
+import { useToast } from '@/hooks/useToast';
 
 const CombinedSchema = z.object({
   settings: UserSettingsSchema,
@@ -82,16 +82,11 @@ export default function SettingsForm({ profile }: { profile: any }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
   const [rootFolderName, setRootFolderName] = useState(
     profile.settings?.defaults?.google_drive_root_name || '',
   );
 
-  const [toast, setToast] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-
+  const { showToast, ToastElement } = useToast();
   const { permissions } = usePlan();
 
   const defaultValues: CombinedData = {
@@ -122,7 +117,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         google_drive_root_id:
           profile.settings?.defaults?.google_drive_root_id ?? '',
         google_drive_root_name:
-          profile.settings?.defaults?.google_drive_root_name ?? '', // Adicione esta linha
+          profile.settings?.defaults?.google_drive_root_name ?? '',
         rename_files_sequential:
           profile.settings?.defaults?.rename_files_sequential ?? true,
       },
@@ -143,19 +138,31 @@ export default function SettingsForm({ profile }: { profile: any }) {
   const onSubmit = async (data: CombinedData) => {
     setIsSaving(true);
     try {
-      const result = await updateProfileSettings(data);
+      const payload: CombinedData = {
+        ...data,
+        settings: {
+          ...data.settings,
+          defaults: {
+            ...data.settings.defaults,
+            enable_favorites:
+              permissions.canFavorite === true &&
+              data.settings.defaults.enable_favorites,
+            enable_slideshow:
+              permissions.canShowSlideshow === true &&
+              data.settings.defaults.enable_slideshow,
+          },
+        },
+      };
+      const result = await updateProfileSettings(payload);
       if (result.success) {
         setIsSuccess(true);
-        setToast({
-          message: 'Preferências salvas com sucesso!',
-          type: 'success',
-        });
+        showToast('Preferências salvas com sucesso!', 'success');
         setTimeout(() => setIsSuccess(false), 3000);
       } else {
-        setToast({ message: result.error || 'Erro ao salvar.', type: 'error' });
+        showToast(result.error || 'Erro ao salvar.', 'error');
       }
     } catch (error) {
-      setToast({ message: 'Ocorreu um erro técnico.', type: 'error' });
+      showToast('Ocorreu um erro técnico.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -179,10 +186,9 @@ export default function SettingsForm({ profile }: { profile: any }) {
         {/* SEÇÃO 1: PADRÕES DE IDENTIFICAÇÃO (ALINHADO HORIZONTALMENTE) */}
         <FormSection
           title="Preferências de Modalidade"
-          icon={<Settings size={14} className="text-gold" />}
+          icon={<Settings size={16} className="text-gold" />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            {/* TIPO PADRÃO */}
             <div className="space-y-2">
               <GalleryTypeToggle
                 label="Modalidade Padrão"
@@ -200,33 +206,39 @@ export default function SettingsForm({ profile }: { profile: any }) {
               />
             </div>
 
-            {/* VISIBILIDADE NO PERFIL */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <Eye size={12} strokeWidth={2} className="text-gold" />
-                Exposição no Perfil Público
+                Exibição no Perfil Público
               </label>
-
               <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
                 <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
                   {settings.defaults.list_on_profile ? 'Ativado' : 'Desativado'}
                 </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue(
-                      'settings.defaults.list_on_profile',
-                      !settings.defaults.list_on_profile,
-                      { shouldDirty: true },
-                    )
-                  }
-                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${settings.defaults.list_on_profile ? 'bg-gold' : 'bg-slate-200'}`}
+                <PlanGuard
+                  feature="profileLevel"
+                  label="Exibição no Perfil Público"
+                  variant="mini"
+                  scenarioType="feature"
                 >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${settings.defaults.list_on_profile ? 'translate-x-4' : ''}`}
-                  />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue(
+                        'settings.defaults.list_on_profile',
+                        !settings.defaults.list_on_profile,
+                        { shouldDirty: true },
+                      )
+                    }
+                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${settings.defaults.list_on_profile ? 'bg-gold' : 'bg-slate-200'}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${settings.defaults.list_on_profile ? 'translate-x-4' : ''}`}
+                    />
+                  </button>
+                </PlanGuard>
               </div>
+
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Define se as novas galerias serão exibidas automaticamente no
                 seu perfil público.
@@ -238,38 +250,45 @@ export default function SettingsForm({ profile }: { profile: any }) {
         {/* SEÇÃO 2: PRIVACIDADE PADRÃO */}
         <FormSection
           title="Privacidade Padrão"
-          icon={<ShieldCheck size={14} />}
+          icon={<ShieldCheck size={16} />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <Shield size={12} className="text-gold" />
                 Acesso Inicial
               </label>
-              <div className="flex bg-slate-100 p-1 rounded-luxury border border-slate-200 h-10 items-center">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue('settings.defaults.is_public', true, {
-                      shouldDirty: true,
-                    })
-                  }
-                  className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
-                >
-                  Público
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue('settings.defaults.is_public', false, {
-                      shouldDirty: true,
-                    })
-                  }
-                  className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${!settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
-                >
-                  Privado
-                </button>
-              </div>
+              <PlanGuard
+                feature="privacyLevel"
+                label="Senha"
+                variant="mini"
+                scenarioType="feature"
+              >
+                <div className="flex bg-slate-100 p-1 rounded-luxury border border-slate-200 h-10 items-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue('settings.defaults.is_public', true, {
+                        shouldDirty: true,
+                      })
+                    }
+                    className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
+                  >
+                    Público
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue('settings.defaults.is_public', false, {
+                        shouldDirty: true,
+                      })
+                    }
+                    className={`flex-1 h-full rounded-[0.4rem] text-[9px] font-bold uppercase tracking-widest transition-all ${!settings.defaults.is_public ? 'bg-champagne shadow-sm text-petroleum' : 'text-slate-400'}`}
+                  >
+                    Privado
+                  </button>
+                </div>
+              </PlanGuard>
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Define se novas galerias começam como públicas ou protegidas.
               </p>
@@ -278,7 +297,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         </FormSection>
 
         {/* SEÇÃO 3: CAPTURA DE LEADS PADRÃO */}
-        <FormSection title="Cadastro de Visitante" icon={<Users size={14} />}>
+        <FormSection title="Cadastro de Visitante" icon={<Users size={16} />}>
           <div className="space-y-2">
             <LeadCaptureSection
               enabled={settings.defaults.enable_guest_registration}
@@ -311,7 +330,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         </FormSection>
 
         {/* SEÇÃO 4: DESIGN PADRÃO */}
-        <FormSection title="Design Padrão" icon={<Palette size={14} />}>
+        <FormSection title="Design Padrão" icon={<Palette size={16} />}>
           <div className="space-y-4">
             <GalleryDesignFields
               showBackgroundPhoto={!!settings.defaults.background_photo}
@@ -356,10 +375,10 @@ export default function SettingsForm({ profile }: { profile: any }) {
           </div>
         </FormSection>
 
-        {/* 🎯 SEÇÃO 5: INTERAÇÃO PADRÃO (NOVA) */}
+        {/* SEÇÃO 5: INTERAÇÃO PADRÃO */}
         <FormSection
           title="Interação & Experiência Padrão"
-          icon={<PlayCircle size={14} />}
+          icon={<PlayCircle size={16} />}
         >
           <div className="space-y-4">
             <GalleryInteractionFields
@@ -383,19 +402,17 @@ export default function SettingsForm({ profile }: { profile: any }) {
           </div>
         </FormSection>
 
-        {/* SEÇÃO 2: PADRÕES DO GOOGLE DRIVE (NOVA) */}
+        {/* SEÇÃO 6: PADRÕES DO GOOGLE DRIVE */}
         <FormSection
           title="Padrões do Google Drive"
-          icon={<FolderSync size={14} />}
+          icon={<FolderSync size={16} />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            {/* PASTA RAIZ PADRÃO */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <FolderSync size={12} strokeWidth={2} className="text-gold" />
                 Pasta Raiz (Google Drive)
               </label>
-
               <div className="flex items-center gap-2">
                 <GooglePickerButton
                   mode="root"
@@ -405,32 +422,25 @@ export default function SettingsForm({ profile }: { profile: any }) {
                   onFolderSelect={(items) => {
                     const folder = items?.[0];
                     if (!folder || !folder.id) return;
-
-                    // 1. Salva o ID no formulário para persistência
                     setValue(
                       'settings.defaults.google_drive_root_id',
                       folder.id,
                       { shouldDirty: true },
                     );
-
-                    // 2. Atualiza o nome visual
                     setValue(
                       'settings.defaults.google_drive_root_name',
                       folder.name,
                       { shouldDirty: true },
                     );
                     setRootFolderName(folder.name);
-
-                    setToast({
-                      message: `Pasta "${folder.name}" definida como raiz.`,
-                      type: 'success',
-                    });
+                    showToast(
+                      `Pasta "${folder.name}" definida como raiz.`,
+                      'success',
+                    );
                   }}
-                  onError={(msg) => setToast({ message: msg, type: 'error' })}
+                  onError={(msg) => showToast(msg, 'error')}
                 />
-
                 <div className="flex-1 relative flex items-center group">
-                  {/* Input que exibe o NOME da pasta, mas é apenas visual */}
                   <input
                     value={
                       rootFolderName ||
@@ -441,8 +451,6 @@ export default function SettingsForm({ profile }: { profile: any }) {
                     placeholder="Nenhuma pasta definida"
                     className="w-full px-3 h-9 bg-slate-50 border border-slate-200 rounded-[0.4rem] text-[10px] text-petroleum font-medium outline-none"
                   />
-
-                  {/* Botão de Limpar (Aparece apenas se houver algo selecionado) */}
                   {(rootFolderName ||
                     watch('settings.defaults.google_drive_root_id')) && (
                     <button
@@ -461,58 +469,61 @@ export default function SettingsForm({ profile }: { profile: any }) {
                       className="absolute right-2 p-1 text-slate-400 hover:text-red-500 transition-colors bg-white/50 backdrop-blur-sm rounded-md"
                       title="Limpar pasta raiz"
                     >
-                      <X size={14} strokeWidth={2.5} />
+                      <X size={16} strokeWidth={2.5} />
                     </button>
                   )}
                 </div>
               </div>
-
-              {/* Input oculto real que será enviado no POST */}
               <input
                 type="hidden"
                 {...register('settings.defaults.google_drive_root_id')}
               />
-
               <input
                 type="hidden"
                 name="settings.defaults.google_drive_root_name"
                 value={rootFolderName}
               />
-
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Ao criar uma nova galeria, o seletor abrirá automaticamente
                 dentro desta pasta.
               </p>
             </div>
 
-            {/* RENOMEAR FOTOS PADRÃO */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60 flex items-center gap-1.5">
+              <label>
                 <ImageIcon size={12} strokeWidth={2} className="text-gold" />
                 Renomeação Sequencial
               </label>
-              <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
-                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
-                  {watch('settings.defaults.rename_files_sequential')
-                    ? 'Ativado'
-                    : 'Desativado'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue(
-                      'settings.defaults.rename_files_sequential',
-                      !watch('settings.defaults.rename_files_sequential'),
-                      { shouldDirty: true },
-                    )
-                  }
-                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${watch('settings.defaults.rename_files_sequential') ? 'bg-gold' : 'bg-slate-200'}`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${watch('settings.defaults.rename_files_sequential') ? 'translate-x-4' : ''}`}
-                  />
-                </button>
-              </div>
+              <PlanGuard
+                feature="keepOriginalFilenames"
+                label="Renomeação Sequencial"
+                variant="mini"
+                scenarioType="feature"
+              >
+                <div className="flex items-center justify-between p-1 px-4 bg-slate-50 rounded-luxury border border-slate-200 h-10">
+                  <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-petroleum/80">
+                    {watch('settings.defaults.rename_files_sequential')
+                      ? 'Ativado'
+                      : 'Desativado'}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue(
+                        'settings.defaults.rename_files_sequential',
+                        !watch('settings.defaults.rename_files_sequential'),
+                        { shouldDirty: true },
+                      )
+                    }
+                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${watch('settings.defaults.rename_files_sequential') ? 'bg-gold' : 'bg-slate-200'}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${watch('settings.defaults.rename_files_sequential') ? 'translate-x-4' : ''}`}
+                    />
+                  </button>
+                </div>
+              </PlanGuard>
               <p className="text-[9px] text-petroleum/50 italic px-1">
                 Padroniza fotos para "foto-001.jpg" automaticamente em novas
                 galerias.
@@ -522,13 +533,7 @@ export default function SettingsForm({ profile }: { profile: any }) {
         </FormSection>
       </div>
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {ToastElement}
     </FormPageBase>
   );
 }

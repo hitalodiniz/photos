@@ -16,7 +16,7 @@ export function TrafficInfoCard({
       ${isTop ? 'bottom-full mb-2' : 'top-full mt-2'}`}
     >
       <div className="flex gap-2 mb-1.5">
-        <Info size={14} className="text-champagne shrink-0" />
+        <Info size={16} className="text-champagne shrink-0" />
         <span className="font-semibold uppercase text-[10px] text-champagne">
           Como funciona?
         </span>
@@ -53,13 +53,13 @@ export function TrafficInfoCard({
     <div className="group relative p-3 bg-white border border-slate-200 rounded-lg border-l-4 border-l-green-500 shadow-sm cursor-help hover:border-green-200 transition-all">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <ShieldCheck size={14} className="text-green-600" />
+          <ShieldCheck size={16} className="text-green-600" />
           <span className="text-[10px] font-semibold uppercase text-petroleum">
             Filtro de Tráfego Interno
           </span>
         </div>
         <Info
-          size={14}
+          size={16}
           className="text-slate-300 group-hover:text-green-600 transition-colors"
         />
       </div>

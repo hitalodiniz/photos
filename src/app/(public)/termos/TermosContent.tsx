@@ -45,7 +45,9 @@ export const TermsOfServiceContent = () => {
           arquivos do Google Drive™. O serviço depende da manutenção de uma
           conta ativa no Google. Você é o único responsável por todas as
           atividades realizadas em sua conta e por manter a segurança de suas
-          credenciais de acesso.
+          credenciais de acesso. O uso do serviço está limitado à capacidade
+          técnica do plano contratado, medida pelo número de galerias ativas e
+          pelo total de arquivos (fotos e vídeos) permitidos.
         </p>
       </section>
 
@@ -94,18 +96,43 @@ export const TermsOfServiceContent = () => {
       </section>
 
       {/* 4. PAGAMENTOS */}
+      {/* 4. PAGAMENTOS */}
       <section>
         <h3 className="text-sm font-bold uppercase tracking-widest text-petroleum mb-3 flex items-center gap-2">
           <span className="w-2 h-2 bg-gold rounded-full" />
           4. Pagamentos, Assinaturas e Reembolsos
         </h3>
-        <p className="pl-4">
-          O acesso aos recursos ({planNames}) depende de pagamento regular. O
-          cancelamento interrompe o acesso aos recursos premium ao final do
-          ciclo pago. Em conformidade com o Código de Defesa do Consumidor,
-          garantimos o direito de arrependimento de 7 dias para a primeira
-          assinatura.
-        </p>
+        <div className="pl-4 space-y-3">
+          <p>
+            O acesso aos recursos ({planNames}) depende de pagamento regular via
+            <strong> Cartão de Crédito, PIX ou Boleto Bancário</strong>. O
+            cancelamento interrompe o acesso aos recursos premium ao final do
+            ciclo pago.
+          </p>
+
+          <p>
+            Em caso de interrupção da assinatura ou downgrade para planos com
+            limites inferiores, o usuário deverá adequar seu volume de arquivos
+            e galerias aos novos tetos, sob pena de suspensão da exibição
+            pública das galerias excedentes.
+          </p>
+
+          <p className="bg-slate-100 p-3 rounded-md border-s-2 border-gold italic text-xs">
+            <strong>Identificação do pagamento:</strong> As transações são
+            processadas por gateways de pagamento parceiros. O usuário reconhece
+            que o beneficiário final dos pagamentos é{' '}
+            <strong>[NOME DA SUA EMPRESA/RAZÃO SOCIAL]</strong>, e que a
+            identificação na fatura do cartão de crédito constará como
+            <strong> "SUAGALERIA"</strong> ou identificação similar da
+            plataforma.
+          </p>
+
+          <p>
+            Em conformidade com o Código de Defesa do Consumidor, garantimos o
+            direito de arrependimento de 7 dias para a primeira assinatura
+            realizada na plataforma.
+          </p>
+        </div>
       </section>
 
       {/* 5. CONDUTA */}
@@ -119,7 +146,9 @@ export const TermsOfServiceContent = () => {
           imagem de terceiros; (b) tentar realizar engenharia reversa na
           plataforma; (c) usar automações (bots) para extração de dados. A
           violação destes termos resulta na rescisão imediata da conta sem
-          direito a reembolso.
+          direito a reembolso; (d) upload de arquivos de vídeo que excedam o
+          limite individual de 100MB ou que visem burlar as finalidades de
+          exibição fotográfica da plataforma.
         </p>
       </section>
 
@@ -168,10 +197,7 @@ export function TermsOfServiceModal({
           <span className="text-[10px] text-white/80 uppercase tracking-widest">
             4 de fevereiro 2026 • Versão 1.0
           </span>
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-champagne text-petroleum text-[10px] font-semibold uppercase rounded-luxury hover:bg-white transition-colors"
-          >
+          <button onClick={onClose} className="btn-luxury-primary">
             Compreendi os Termos
           </button>
         </div>

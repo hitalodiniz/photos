@@ -51,9 +51,7 @@ export default async function GaleriaStatsPage({ params }: StatsPageProps) {
   const resultProfile = await getProfileData();
 
   if (!resultProfile.success || !resultProfile.profile) {
-    redirect(
-      resultProfile.error === 'Usuário não autenticado.' ? '/' : '/onboarding',
-    );
+    redirect('/');
   }
 
   const profile = resultProfile.profile;

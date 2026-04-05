@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus, CheckCircle2 } from 'lucide-react';
 
 interface DashboardFooterProps {
   visibleCount: number;
@@ -13,27 +13,79 @@ export default function DashboardFooter({
   onLoadMore,
   showLoadMore,
 }: DashboardFooterProps) {
-  return (
-    <div className="w-full bg-petroleum rounded-luxury py-3 px-4 mt-4 shadow-xl border border-white/5">
-      <div className="flex items-center justify-center gap-4">
-        {/* Contador - Botão Secundário */}
-        <div className="px-4 py-3.5 rounded-luxury bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-luxury text-white">
-          EXIBINDO {visibleCount} DE {totalCount} GALERIAS
-        </div>
+  const remainingCount = totalCount - visibleCount;
+  // ── Cálculo de Progresso com Proteção Contra Divisão por Zero ────────────────
+  const progressPercent =
+    totalCount > 0 ? Math.round((visibleCount / totalCount) * 100) : 0;
+  const isComplete = visibleCount >= totalCount;
 
-        {/* Botão Principal - Expandir Acervo */}
-        {showLoadMore && (
-          <button
-            onClick={onLoadMore}
-            className="group px-6 py-3.5 rounded-luxury bg-champagne text-petroleum border border-champagne hover:bg-white transition-all duration-300 uppercase text-[10px] font-bold tracking-luxury shadow-lg active:scale-95 flex items-center gap-3 ml-4"
-          >
-            <Plus
-              size={14}
+  return (
+    <div className="w-full mt-4 mb-8">
+      {/* 🎯 Barra de Progresso Compacta */}
+      <div className="mb-2">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[9px] font-semibold text-petroleum/50 uppercase tracking-wider">
+            Progresso
+          </p>
+          <p className="text-[9px] font-bold text-petroleum">
+            {progressPercent}%
+          </p>
+        </div>
+        <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-gold to-champagne transition-all duration-700"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 🎯 Card Compacto */}
+      <div className="relative rounded-lg bg-petroleum px-4 py-4 shadow-lg border border-white/5">
+        {isComplete ? (
+          // ✅ Estado Completo (compacto)
+          <div className="flex items-center justify-center gap-2">
+            <CheckCircle2
+              size={16}
+              className="text-green-400"
               strokeWidth={2.5}
-              className="text-petroleum group-hover:rotate-90 transition-transform duration-300 shrink-0"
             />
-            EXPANDIR ACERVO
-          </button>
+            <p className="text-white text-[11px] font-semibold uppercase tracking-wide">
+              Exibindo todas as galerias
+            </p>
+            <span className="text-white text-[12px]">({totalCount})</span>
+          </div>
+        ) : (
+          // 📊 Estado Carregando (compacto)
+          <div className="flex items-center justify-between gap-3">
+            {/* Contador Compacto */}
+            <div className="flex items-center gap-2">
+              <div className="w-0.5 h-6 bg-champagne rounded-full" />
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/70">
+                  Visualizando
+                </p>
+                <p className="text-white text-[15px] font-bold leading-none">
+                  {visibleCount}
+                  <span className="text-[11px] text-white font-normal ml-1">
+                    / {totalCount}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Botão Compacto */}
+            {showLoadMore && remainingCount > 0 && (
+              <button onClick={onLoadMore} className="btn-luxury-primary">
+                <span className="flex items-center gap-1.5">
+                  Exibir{' '}
+                  <span className="text-[11px] font-semibold">
+                    +{remainingCount}
+                  </span>{' '}
+                  galerias
+                </span>
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -242,8 +242,8 @@ export default function FAQContent() {
                   className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {SegmentIcon && (
-                      <div className="shrink-0 text-gold">{SegmentIcon}</div>
+                    {item.icon && (
+                      <div className="shrink-0 text-gold">{item.icon}</div>
                     )}
                     <span className="font-semibold text-slate-900 flex-1">
                       {item.question}

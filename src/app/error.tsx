@@ -46,14 +46,14 @@ export default function GlobalError({
               onClick={() => reset()}
               className="px-8 py-3 bg-gold hover:bg-gold/90 text-black font-semibold uppercase tracking-luxury-widest text-[10px] rounded-full transition-all flex items-center justify-center gap-2"
             >
-              <RefreshCcw size={14} /> Tentar Novamente
+              <RefreshCcw size={16} /> Tentar Novamente
             </button>
 
             <button
               onClick={() => router.push('/')}
               className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold uppercase tracking-luxury-widest text-[10px] rounded-full border border-white/10 transition-all flex items-center justify-center gap-2"
             >
-              <Home size={14} /> Início
+              <Home size={16} /> Início
             </button>
           </div>
 

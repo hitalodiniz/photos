@@ -4,109 +4,31 @@
 
 @layer base {
   /* ========================================================================
-     🎯 SISTEMA DE TEMAS POR SEGMENTO (TONALIDADES SÓLIDAS RECALIBRADAS)
-     ======================================================================== */
-
-  /* 🎯 TEMA PHOTOGRAPHER: (Sua Galeria) */
-  :root,
-  [data-segment='PHOTOGRAPHER'] {
-    --color-champagne: 243 229 171; /* Bege suave e elegante */
-    --color-champagne-hover: 229 214 154;
-    --color-gold: 212 175 55; /* Dourado clássico */
-    /* 🎯 Ajustado para emular o tom do antigo /90 de forma sólida */
-    --color-petroleum: 5 38 51;
-    --color-petroleum-light: 8 48 65;
-    --color-petroleum-dark: 2 28 38;
-    --color-luxury-bg: 248 249 250; /* Fundo off-white suave */
-    --color-surface-dark: 17 24 39;
-    --color-surface-mixed: 45 46 102;
-    --color-status-success: 37 161 102;
-  }
-
-  /* [data-segment='PHOTOGRAPHER'] { */
-  /* ⚜️ Ouro Metálico / Champagne */
-  /* --color-gold: 212 175 55; /* #D4AF37 - Dourado clássico */
-  /* --color-champagne: 212 175 55; /* Alinhado ao ouro para consistência */
-  /* --color-champagne-hover: 184 148 42; /* Tom de ouro levemente mais escuro para o hover */
-
-  /* 🔘 Zinco (Substituindo o Petróleo) */
-  /* --color-petroleum: 9 9 11; /* Zinc 950 - A profundidade que você gostou */
-  /* --color-petroleum-light: 24 24 27; /* Zinc 900 - Para elevações e cards */
-  /* --color-petroleum-dark: 0 0 0; /* Preto absoluto para contrastes extremos */
-
-  /* 💎 Superfícies e Luxo */
-  /* --color-luxury-bg: 9 9 11; /* Fundo Zinco unificado */
-  /* --color-surface-dark: 24 24 27; /* Superfície Zinc 900 */
-  /* --color-surface-mixed: 39 39 42; /* Zinc 800 - Para divisores e bordas sutis */
-
-  /* ✅ Status */
-  --color-status-success: 34 197 94; /* Green 500 para sucesso/WhatsApp */
-  /* } */
-
-  /* 🎯 TEMA EVENT: (Na Selfie) */
-  [data-segment='EVENT'] {
-    --color-champagne: 255 71 126; /* Pink vibrante */
-    --color-champagne-hover: 236 72 153;
-    --color-gold: 255 20 147;
-    /* 🎯 Preto suave sólido */
-    --color-petroleum: 28 28 28;
-    --color-petroleum-light: 42 42 42;
-    --color-petroleum-dark: 15 15 15;
-    --color-luxury-bg: 250 250 250;
-    --color-surface-dark: 23 23 23;
-    --color-surface-mixed: 244 63 94;
-    --color-status-success: 34 197 94;
-  }
-
-  /* 🎯 TEMA OFFICE: (Institucional Premium) */
-  [data-segment='OFFICE'] {
-    --color-champagne: 210 215 225;
-    --color-champagne-hover: 180 190 205;
-    --color-gold: 148 163 184;
-    /* 🎯 Antracite sólido recalibrado */
-    --color-petroleum: 32 35 39;
-    --color-petroleum-light: 58 64 70;
-    --color-petroleum-dark: 18 20 23;
-    --color-luxury-bg: 250 250 250;
-    --color-surface-dark: 26 29 33;
-    --color-surface-mixed: 255 255 255;
-    --color-status-success: 33 37 41;
-  }
-
-  /* 🎯 TEMA CAMPAIGN: (Editorial Areia) */
-  [data-segment='CAMPAIGN'] {
-    --color-champagne: 225 205 160;
-    --color-champagne-hover: 210 185 130;
-    --color-gold: 168 153 132;
-    /* 🎯 Chumbo profundo sólido */
-    --color-petroleum: 32 35 39;
-    --color-petroleum-light: 58 64 70;
-    --color-petroleum-dark: 18 20 23;
-    --color-luxury-bg: 250 250 250;
-    --color-surface-dark: 26 29 33;
-    --color-surface-mixed: 255 255 255;
-    --color-status-success: 33 37 41;
-  }
-
-  /* ========================================================================
      🎯 APLICAÇÕES GLOBAIS E TIPOGRAFIA
      ======================================================================== */
 
-  html,
+  html {
+    /* Garante que o scrollbar não desloque o conteúdo (evita layout shift) */
+    scrollbar-gutter: stable;
+  }
+
   body {
-    font-family: var(--font-montserrat), sans-serif;
+    /* Fallback seguro: Montserrat -> Inter (Sans) -> System Sans */
+    font-family:
+      var(--font-montserrat), 'Inter', ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     @apply antialiased bg-luxury-bg text-petroleum selection:bg-gold/30 transition-colors duration-300;
   }
 
+  /* 🚀 CORREÇÃO DO SERRILHADO: Força antialiasing em todos os elementos */
   *,
   *::before,
   *::after {
-    font-family: var(--font-montserrat), sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-
   h1,
   h2,
   h3,
@@ -114,8 +36,9 @@
     @apply font-sans font-semibold tracking-luxury-tight;
   }
 
+  /* Ajuste de labels para não ficarem "esmagadas" */
   label {
-    @apply text-[10px] font-semibold uppercase tracking-wide text-petroleum flex items-center gap-2;
+    @apply text-[10px] font-bold uppercase tracking-widest text-petroleum/70 flex items-center gap-2 mb-1;
   }
 
   input,
@@ -123,8 +46,6 @@
   button,
   select {
     font-family: inherit;
-    -webkit-font-smoothing: inherit;
-    -moz-osx-font-smoothing: inherit;
   }
 
   input[type='text'],
@@ -134,7 +55,246 @@
     @apply input-luxury;
   }
 
-  /* Segura resets de background específicos para cada segmento */
+  @layer components {
+    /* ========================================================================
+     🎯 CLASSES DE SUPERFÍCIE (SÓLIDAS)
+     ======================================================================== */
+
+    .glass-surface {
+      @apply bg-petroleum border-b border-white/5 shadow-lg;
+      backdrop-filter: none !important;
+    }
+
+    .glass-surface-dark {
+      @apply bg-petroleum-dark border border-white/10 shadow-2xl;
+      backdrop-filter: none !important;
+    }
+
+    /* ========================================================================
+     🎯 CLASSES EDITORIAIS E BOTÕES
+     ======================================================================== */
+
+    .text-editorial {
+      @apply text-[10px] font-semibold uppercase tracking-widest;
+    }
+
+    .text-editorial-label {
+      @apply text-[10px] font-semibold uppercase tracking-wide;
+    }
+
+    .btn-luxury-base {
+      @apply h-10 px-4 flex items-center justify-center gap-2;
+      @apply text-[10px] font-semibold uppercase tracking-luxury-widest;
+      @apply transition-all duration-500 ease-in-out active:scale-95;
+      border-radius: var(--radius-btn, 0.4rem);
+    }
+
+    .btn-luxury-primary {
+      @apply btn-luxury-base bg-champagne text-petroleum border border-champagne shadow-lg hover:bg-champagne-hover;
+    }
+
+    .btn-secondary-petroleum {
+      @apply btn-luxury-base border-white/40 bg-white/5 text-white/90;
+      @apply transition-all duration-300 ease-out;
+      @apply hover:bg-white/10 hover:border-white/30 hover:text-white;
+    }
+
+    .btn-secondary-white {
+      @apply btn-luxury-base border-petroleum/40 bg-white text-petroleum hover:border-white/80 hover:bg-white/80 transition-all duration-500;
+    }
+
+    .btn-toolbar {
+      @apply btn-luxury-base h-9 px-3 border-white/10 bg-white/5 text-white/80 hover:bg-gold hover:text-petroleum hover:border-gold shadow-none;
+      border-radius: var(--radius-btn, 0.4rem);
+    }
+
+    .input-luxury {
+      @apply h-10 w-full bg-white border border-slate-200 px-4 text-[11px] font-medium tracking-wide outline-none transition-all;
+      @apply focus:border-gold focus:ring-4 focus:ring-gold/5 placeholder:text-slate-300;
+      border-radius: var(--radius-btn, 0.4rem);
+    }
+
+    /* Card com raio controlado pelo tema */
+    .card-themed {
+      border-radius: var(--radius-card, 0.75rem);
+      overflow: hidden;
+    }
+
+    .loading-screen-luxury {
+      @apply fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum;
+    }
+
+    .loading-luxury::after {
+      content: '';
+      @apply w-6 h-6 border-2 border-white/10 border-t-gold rounded-full animate-spin;
+    }
+  }
+
+  @layer utilities {
+    .glow-gold {
+      filter: drop-shadow(0 0 4px rgba(243, 229, 171, 0.4));
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #052633;
+      border-radius: 10px;
+      border: 2px solid #f1f1f1;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #c5a358;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .picker-dialog {
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      z-index: 10000 !important;
+      position: fixed !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+    }
+    .picker-dialog-bg {
+      z-index: 9999 !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background-color: rgba(0, 0, 0, 0.6) !important;
+    }
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .animate-shake {
+    animation: shake 0.2s ease-in-out 0s 2;
+  }
+
+  .animate-cursor-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes progress-bar {
+    from {
+      width: 0%;
+    }
+    to {
+      width: 100%;
+    }
+  }
+
+  /* ========================================================================
+     🎯 SISTEMA DE TEMAS POR SEGMENTO (TONALIDADES SÓLIDAS RECALIBRADAS)
+     ======================================================================== */
+
+  /* 🎯 Padrão :root e segmento PHOTOGRAPHER (Sua Galeria) */
+  :root,
+  [data-segment='PHOTOGRAPHER'] {
+    --color-champagne: 243 229 171;
+    --color-champagne-hover: 229 214 154;
+    --color-gold: 212 175 55;
+    --color-petroleum: 5 38 51;
+    --color-petroleum-light: 8 48 65;
+    --color-petroleum-dark: 2 28 38;
+    --color-luxury-bg: 248 249 250;
+    --color-surface-dark: 17 24 39;
+    --color-surface-mixed: 45 46 102;
+    --color-status-success: 37 161 102;
+
+    /* Tipografia */
+    --font-display: var(--font-montserrat), sans-serif;
+    --radius-card: 0.75rem;
+    --radius-btn: 0.4rem;
+  }
+
+  /* 🎯 TEMA EVENT: (Na Selfie) */
+  [data-segment='EVENT'] {
+    --color-champagne: 255 71 126;
+    --color-champagne-hover: 236 72 153;
+    --color-gold: 255 20 147;
+    --color-petroleum: 28 28 28;
+    --color-petroleum-light: 42 42 42;
+    --color-petroleum-dark: 15 15 15;
+    --color-luxury-bg: 250 250 250;
+    --color-surface-dark: 23 23 23;
+    --color-surface-mixed: 244 63 94;
+    --color-status-success: 34 197 94;
+    --font-display: var(--font-montserrat), sans-serif;
+    --radius-card: 0.75rem;
+    --radius-btn: 0.4rem;
+  }
+
+  /* 🎯 TEMA OFFICE: (Institucional Premium) */
+  [data-segment='OFFICE'] {
+    --color-champagne: 210 215 225;
+    --color-champagne-hover: 180 190 205;
+    --color-gold: 148 163 184;
+    --color-petroleum: 32 35 39;
+    --color-petroleum-light: 58 64 70;
+    --color-petroleum-dark: 18 20 23;
+    --color-luxury-bg: 250 250 250;
+    --color-surface-dark: 26 29 33;
+    --color-surface-mixed: 255 255 255;
+    --color-status-success: 33 37 41;
+    --font-display: var(--font-montserrat), sans-serif;
+    --radius-card: 0.75rem;
+    --radius-btn: 0.4rem;
+  }
+
+  /* 🎯 TEMA CAMPAIGN: (Editorial Areia) */
+  [data-segment='CAMPAIGN'] {
+    --color-champagne: 225 205 160;
+    --color-champagne-hover: 210 185 130;
+    --color-gold: 168 153 132;
+    --color-petroleum: 32 35 39;
+    --color-petroleum-light: 58 64 70;
+    --color-petroleum-dark: 18 20 23;
+    --color-luxury-bg: 250 250 250;
+    --color-surface-dark: 26 29 33;
+    --color-surface-mixed: 255 255 255;
+    --color-status-success: 33 37 41;
+    --font-display: var(--font-montserrat), sans-serif;
+    --radius-card: 0.75rem;
+    --radius-btn: 0.4rem;
+  }
+
   [data-segment='OFFICE'] body,
   [data-segment='CAMPAIGN'] body,
   [data-segment='EVENT'] body {
@@ -142,158 +302,454 @@
   }
 }
 
-@layer components {
-  /* ========================================================================
-     🎯 CLASSES DE SUPERFÍCIE (SÓLIDAS)
-     ======================================================================== */
+/* ========================================================================
+   🎯 TEMAS VISUAIS PERSONALIZÁVEIS — FORA DE @layer (MAIOR ESPECIFICIDADE)
+   Seletores [data-theme='X'] garantem vitória sobre :root e data-segment.
+   ======================================================================== */
 
-  .glass-surface {
-    /* 🎯 Cor sólida para evitar transparência indesejada */
-    @apply bg-petroleum border-b border-white/5 shadow-lg;
-    backdrop-filter: none !important;
-  }
+/* ========================================================================
+   🎯 CLASSES SEMÂNTICAS PARA PÁGINAS PÚBLICAS (toolbar + footer)
+   Usadas em: ProfileToolBar, ProfileContent, ToolBarDesktop, ToolBarMobile,
+   GaleriaFooter, DownloadCenterSheet.
+   Isoladas do admin — só se aplicam dentro de [data-theme].
+   ======================================================================== */
 
-  .glass-surface-dark {
-    /* 🎯 Cor sólida escura para dropdowns e modais */
-    @apply bg-petroleum-dark border border-white/10 shadow-2xl;
-    backdrop-filter: none !important;
-  }
+/*
+  CONVENÇÃO DE CLASSES PÚBLICAS:
+  .pub-bar-bg       → fundo da toolbar/footer pública
+  .pub-bar-border   → borda inferior da toolbar
+  .pub-bar-text     → texto primário (labels, títulos)
+  .pub-bar-muted    → texto secundário / ícones atenuados
+  .pub-bar-accent   → cor de destaque (acento, hover ativo)
+  .pub-bar-btn      → botão padrão (fundo sutil + borda)
+  .pub-bar-btn-cta  → botão de ação principal (CTA)
+  .pub-bar-icon     → cor dos ícones
+  .pub-bar-divider  → cor de divisores/separadores
+  .pub-bar-drawer   → fundo do painel gaveta expandido
+*/
 
-  /* ========================================================================
-     🎯 CLASSES EDITORIAIS E BOTÕES
-     ======================================================================== */
+/* ========================================================================
+   PHOTOGRAPHER — Petróleo escuro + Champagne/Dourado (referência validada)
+   ======================================================================== */
+[data-theme='PHOTOGRAPHER'],
+[data-theme='PHOTOGRAPHER'] body {
+  --color-champagne: 243 229 171;
+  --color-champagne-hover: 229 214 154;
+  --color-gold: 212 175 55;
+  --color-petroleum: 5 38 51;
+  --color-petroleum-light: 8 48 65;
+  --color-petroleum-dark: 2 28 38;
+  --color-luxury-bg: 248 249 250;
+  --color-surface-dark: 17 24 39;
+  --color-surface-mixed: 45 46 102;
+  --color-status-success: 37 161 102;
+  --font-display: var(--font-montserrat), sans-serif;
+  --radius-card: 0.75rem;
+  --radius-btn: 0.4rem;
 
-  .text-editorial {
-    @apply text-[10px] font-semibold uppercase tracking-widest;
-  }
-
-  .text-editorial-label {
-    @apply text-[10px] font-semibold uppercase tracking-wide;
-  }
-
-  .btn-luxury-base {
-    @apply h-10 px-4 rounded-luxury flex items-center justify-center gap-2;
-    @apply text-[10px] font-semibold uppercase tracking-luxury-widest;
-    @apply transition-all duration-500 ease-in-out active:scale-95;
-  }
-
-  .btn-luxury-primary {
-    @apply btn-luxury-base bg-champagne text-petroleum border border-champagne shadow-lg hover:bg-champagne-hover;
-  }
-
-  /* No seu globals.css */
-  .btn-secondary-petroleum {
-    /* Base */
-    @apply btn-luxury-base border-white/40 bg-white/5 text-white/90;
-
-    /* Interação Premium */
-    @apply transition-all duration-300 ease-out;
-
-    /* Hover: O botão "acende" levemente */
-    @apply hover:bg-white/10 hover:border-white/30 hover:text-white;
-  }
-
-  .btn-secondary-white {
-    @apply btn-luxury-base border-petroleum/40 bg-white text-petroleum hover:border-white/80 hover:bg-white/80 transition-all duration-500;
-  }
-
-  .btn-toolbar {
-    @apply btn-luxury-base h-9 px-3 rounded-luxury-sm border-white/10 bg-white/5 text-white/80 hover:bg-gold hover:text-petroleum hover:border-gold shadow-none;
-  }
-
-  .input-luxury {
-    @apply h-10 w-full bg-white border border-slate-200 rounded-luxury px-4 text-[11px] font-medium tracking-wide outline-none transition-all;
-    @apply focus:border-gold focus:ring-4 focus:ring-gold/5 placeholder:text-slate-300;
-  }
-
-  .loading-screen-luxury {
-    @apply fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-petroleum;
-  }
-
-  .loading-luxury::after {
-    content: '';
-    @apply w-6 h-6 border-2 border-white/10 border-t-gold rounded-full animate-spin;
-  }
+  /* Variáveis semânticas públicas */
+  --pub-bar-bg: 5 38 51;
+  --pub-bar-text-rgb: 255 255 255;
+  --pub-bar-text-opacity: 0.9;
+  --pub-bar-accent: 212 175 55;
+  --pub-bar-icon: 243 229 171;
+  --pub-bar-btn-bg: 255 255 255;
+  --pub-bar-btn-border: 255 255 255;
+  --pub-bar-cta-bg: 243 229 171;
+  --pub-bar-cta-text: 5 38 51;
+  --pub-bar-drawer-bg: 5 38 51;
+  --pub-bar-border: 255 255 255;
+  /* Acento do hero — sempre claro (fundo do hero é sempre escuro/foto) */
+  --pub-hero-accent: 243 229 171; /* champagne dourado */
 }
 
-@layer utilities {
-  .glow-gold {
-    filter: drop-shadow(0 0 4px rgba(243, 229, 171, 0.4));
-  }
+/* ========================================================================
+   DARK CINEMA — Preto profundo + Dourado quente
+   ======================================================================== */
+[data-theme='DARK_CINEMA'],
+[data-theme='DARK_CINEMA'] body {
+  --color-luxury-bg: 248 249 250;
+  --color-petroleum: 10 10 10;
+  --color-petroleum-light: 28 28 28;
+  --color-petroleum-dark: 0 0 0;
+  --color-gold: 180 140 35;
+  --color-champagne: 220 195 120;
+  --color-champagne-hover: 200 175 100;
+  --color-surface-dark: 18 18 18;
+  --color-surface-mixed: 30 30 30;
+  --color-status-success: 34 197 94;
+  --radius-card: 0.75rem;
+  --radius-btn: 0.4rem;
 
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #052633;
-    border-radius: 10px;
-    border: 2px solid #f1f1f1;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #c5a358;
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  /* Modais e Pickers */
-  .picker-dialog {
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    z-index: 10000 !important;
-    position: fixed !important;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-  }
-  .picker-dialog-bg {
-    z-index: 9999 !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background-color: rgba(0, 0, 0, 0.6) !important;
-  }
+  --pub-bar-bg: 10 10 10;
+  --pub-bar-text-rgb: 255 255 255;
+  --pub-bar-text-opacity: 0.9;
+  --pub-bar-accent: 180 140 35;
+  --pub-bar-icon: 220 195 120;
+  --pub-bar-btn-bg: 255 255 255;
+  --pub-bar-btn-border: 255 255 255;
+  --pub-bar-cta-bg: 220 195 120;
+  --pub-bar-cta-text: 10 10 10;
+  --pub-bar-drawer-bg: 10 10 10;
+  --pub-bar-border: 255 255 255;
+  --pub-hero-accent: 220 195 120; /* dourado quente */
 }
 
-@keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-4px);
-  }
-  75% {
-    transform: translateX(4px);
-  }
+/* ========================================================================
+   EDITORIAL_WHITE — Branco absoluto + Dourado/Champagne, texto escuro
+   ======================================================================== */
+[data-theme='EDITORIAL_WHITE'],
+[data-theme='EDITORIAL_WHITE'] body {
+  --color-petroleum: 40 60 80;
+  --color-petroleum-light: 55 75 95;
+  --color-petroleum-dark: 20 30 45;
+  --color-luxury-bg: 255 255 255;
+  --color-champagne: 243 229 171;
+  --color-champagne-hover: 229 214 154;
+  --color-gold: 212 175 55;
+  --color-surface-dark: 30 35 45;
+  --color-surface-mixed: 60 70 85;
+  --color-status-success: 37 161 102;
+  --font-display: var(--font-montserrat), sans-serif;
+  --radius-card: 0.75rem;
+  --radius-btn: 0.4rem;
+
+  /* Toolbar pública usa fundo claro + texto escuro */
+  --pub-bar-bg: 255 255 255;
+  --pub-bar-text-rgb: 40 60 80; /* texto escuro sobre fundo branco */
+  --pub-bar-text-opacity: 1;
+  --pub-bar-accent: 40 60 80; /* azul escuro (petróleo) */
+  --pub-bar-icon: 40 60 80;
+  --pub-bar-btn-bg: 40 60 80;
+  --pub-bar-btn-border: 40 60 80;
+  --pub-bar-cta-bg: 40 60 80; /* mesmo azul petróleo dos ícones */
+  --pub-bar-cta-text: 255 255 255; /* branco sobre petróleo ✅ */
+  --pub-bar-drawer-bg: 245 247 250;
+  --pub-bar-border: 40 60 80;
+  /* Hero sempre tem fundo escuro — usa prata/branco limpo */
+  --pub-hero-accent: 210 215 220;
+}
+[data-theme='EDITORIAL_WHITE'] body {
+  background-color: rgb(255 255 255) !important;
 }
 
-@keyframes blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface {
+  background-color: rgb(var(--color-luxury-bg)) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+  backdrop-filter: none !important;
+}
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface .text-white,
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface .text-white\/90,
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface .text-white\/70,
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface h1,
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface span {
+  color: rgb(40 60 80) !important;
+}
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface button,
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface svg:not(.text-gold) {
+  color: rgb(40 60 80) !important;
+  stroke: rgb(40 60 80) !important;
+}
+[data-theme='EDITORIAL_WHITE'] nav.glass-surface .bg-white\/20 {
+  background-color: rgba(40, 60, 80, 0.2) !important;
 }
 
-.animate-shake {
-  animation: shake 0.2s ease-in-out 0s 2;
+/* ========================================================================
+   NATURE — Verde musgo + Terra queimada
+   ======================================================================== */
+[data-theme='NATURE'],
+[data-theme='NATURE'] body {
+  --color-champagne: 195 220 195;
+  --color-champagne-hover: 170 200 170;
+  --color-gold: 160 100 60;
+  --color-petroleum: 45 55 40;
+  --color-petroleum-light: 70 85 60;
+  --color-petroleum-dark: 25 35 20;
+  --color-luxury-bg: 248 244 236;
+  --color-surface-dark: 235 228 210;
+  --color-surface-mixed: 220 210 190;
+  --color-status-success: 80 140 80;
+  --font-display: var(--font-montserrat), sans-serif;
+  --radius-card: 1rem;
+  --radius-btn: 0.5rem;
+
+  --pub-bar-bg: 45 55 40;
+  --pub-bar-text-rgb: 255 255 255;
+  --pub-bar-text-opacity: 0.85;
+  --pub-bar-accent: 204 144 104; /* terra queimada clareada — AA 4.59:1 ✅ */
+  --pub-bar-icon: 195 220 195;
+  --pub-bar-btn-bg: 255 255 255;
+  --pub-bar-btn-border: 255 255 255;
+  --pub-bar-cta-bg: 195 220 195;
+  --pub-bar-cta-text: 45 55 40;
+  --pub-bar-drawer-bg: 35 45 30;
+  --pub-bar-border: 255 255 255;
+  --pub-hero-accent: 195 220 195; /* verde menta claro */
 }
 
-.animate-cursor-blink {
-  animation: blink 1s step-end infinite;
+/* ========================================================================
+   NOCTURNAL LUXURY — Azul noite profundo + Champagne/Dourado
+   ======================================================================== */
+[data-theme='NOCTURNAL_LUXURY'],
+[data-theme='NOCTURNAL_LUXURY'] body {
+  --color-luxury-bg: 8 12 28;
+  --color-petroleum: 8 12 28;
+  --color-petroleum-light: 20 28 58;
+  --color-petroleum-dark: 4 8 18;
+  --color-gold: 212 175 55;
+  --color-champagne: 243 229 171;
+  --color-champagne-hover: 229 214 154;
+  --color-surface-dark: 12 18 40;
+  --color-surface-mixed: 20 28 58;
+  --color-status-success: 37 161 102;
+  --radius-card: 0.75rem;
+  --radius-btn: 0.4rem;
+
+  --pub-bar-bg: 8 12 28;
+  --pub-bar-text-rgb: 255 255 255;
+  --pub-bar-text-opacity: 0.9;
+  --pub-bar-accent: 212 175 55;
+  --pub-bar-icon: 243 229 171;
+  --pub-bar-btn-bg: 255 255 255;
+  --pub-bar-btn-border: 255 255 255;
+  --pub-bar-cta-bg: 243 229 171;
+  --pub-bar-cta-text: 8 12 28;
+  --pub-bar-drawer-bg: 4 8 18;
+  --pub-bar-border: 255 255 255;
+  --pub-hero-accent: 243 229 171; /* champagne dourado */
+}
+[data-theme='NOCTURNAL_LUXURY'] body {
+  background-color: rgb(248 249 250) !important;
+}
+
+/* ========================================================================
+   OFF_WHITE / GELO — Azul aço claro + Texto escuro
+   ======================================================================== */
+[data-theme='OFF_WHITE'],
+[data-theme='OFF_WHITE'] body {
+  --color-champagne: 180 205 225;
+  --color-champagne-hover: 155 185 210;
+  --color-gold: 130 160 190;
+  --color-petroleum: 40 60 80;
+  --color-petroleum-light: 70 95 120;
+  --color-petroleum-dark: 20 40 60;
+  --color-luxury-bg: 240 245 250;
+  --color-surface-dark: 225 232 240;
+  --color-surface-mixed: 210 220 232;
+  --color-status-success: 34 197 94;
+  --font-display: var(--font-montserrat), sans-serif;
+  --radius-card: 1rem;
+  --radius-btn: 0.5rem;
+
+  --pub-bar-bg: 40 60 80;
+  --pub-bar-text-rgb: 255 255 255;
+  --pub-bar-text-opacity: 0.9;
+  --pub-bar-accent: 138 168 198; /* azul aço clareado — AA 4.59:1 ✅ */
+  --pub-bar-icon: 180 205 225;
+  --pub-bar-btn-bg: 255 255 255;
+  --pub-bar-btn-border: 255 255 255;
+  --pub-bar-cta-bg: 180 205 225;
+  --pub-bar-cta-text: 40 60 80;
+  --pub-bar-drawer-bg: 30 50 70;
+  --pub-bar-border: 255 255 255;
+  --pub-hero-accent: 180 205 225; /* azul aço claro */
+}
+
+/* ========================================================================
+   PLATINUM — Cinza platina + Fundo claro neutro
+   ======================================================================== */
+[data-theme='PLATINUM'],
+[data-theme='PLATINUM'] body {
+  --color-champagne: 195 200 210;
+  --color-champagne-hover: 175 182 195;
+  --color-gold: 150 158 170;
+  --color-petroleum: 35 38 45;
+  --color-petroleum-light: 60 65 75;
+  --color-petroleum-dark: 18 20 25;
+  --color-luxury-bg: 238 240 244;
+  --color-surface-dark: 220 224 230;
+  --color-surface-mixed: 205 210 218;
+  --color-status-success: 34 197 94;
+  --font-display: var(--font-montserrat), sans-serif;
+  --radius-card: 0.25rem;
+  --radius-btn: 0.25rem;
+
+  --pub-bar-bg: 35 38 45;
+  --pub-bar-text-rgb: 255 255 255;
+  --pub-bar-text-opacity: 0.9;
+  --pub-bar-accent: 150 158 170;
+  --pub-bar-icon: 195 200 210;
+  --pub-bar-btn-bg: 255 255 255;
+  --pub-bar-btn-border: 255 255 255;
+  --pub-bar-cta-bg: 195 200 210;
+  --pub-bar-cta-text: 35 38 45;
+  --pub-bar-drawer-bg: 25 28 35;
+  --pub-bar-border: 255 255 255;
+  --pub-hero-accent: 195 200 210; /* platina clara */
+}
+
+/* ========================================================================
+   WARM BLUSH — Blush rosado + Terracota suave
+   ======================================================================== */
+[data-theme='WARM_BLUSH'],
+[data-theme='WARM_BLUSH'] body {
+  --color-luxury-bg: 253 246 240;
+  --color-petroleum: 92 68 60;
+  --color-petroleum-light: 139 107 92;
+  --color-petroleum-dark: 70 52 46;
+  --color-gold: 201 168 124;
+  --color-champagne: 220 195 160;
+  --color-champagne-hover: 200 175 140;
+  --color-surface-dark: 240 232 224;
+  --color-surface-mixed: 248 240 232;
+  --color-status-success: 34 197 94;
+  --font-display: var(--font-montserrat), sans-serif;
+  --radius-card: 0.75rem;
+  --radius-btn: 0.4rem;
+
+  --pub-bar-bg: 92 68 60;
+  --pub-bar-text-rgb: 255 255 255;
+  --pub-bar-text-opacity: 0.9;
+  --pub-bar-accent: 213 180 136; /* blush clareado — AA 4.56:1 ✅ */
+  --pub-bar-icon: 220 195 160;
+  --pub-bar-btn-bg: 255 255 255;
+  --pub-bar-btn-border: 255 255 255;
+  --pub-bar-cta-bg: 220 195 160;
+  --pub-bar-cta-text: 92 68 60;
+  --pub-bar-drawer-bg: 75 55 48;
+  --pub-bar-border: 255 255 255;
+  --pub-hero-accent: 220 195 160; /* blush rosado claro */
+}
+
+/* ========================================================================
+   🎯 CLASSES UTILITÁRIAS PÚBLICAS — Consomem as variáveis --pub-bar-*
+   Aplicar diretamente nos componentes públicos:
+   ProfileToolBar, ToolBarDesktop, ToolBarMobile, GaleriaFooter,
+   DownloadCenterSheet.
+
+   CONVENÇÃO VISUAL (baseada no tema PHOTOGRAPHER validado):
+   - Texto de labels/nomes → branco com leve opacidade (legível sobre fundo escuro)
+   - Ícones → cor champagne/acento do tema (destaque sutil)
+   - Botões normais → fundo quase transparente, borda muito fina e suave
+   - Botão CTA (Baixar, Contato) → fundo champagne sólido, texto escuro
+   - Estado ativo → acento gold com fundo tênue
+   ======================================================================== */
+
+/* Fundo da toolbar/footer pública */
+.pub-bar-bg {
+  background-color: rgb(var(--pub-bar-bg, var(--color-petroleum)));
+}
+
+/* Borda inferior da toolbar — muito sutil */
+.pub-bar-border-b {
+  border-bottom-color: rgb(var(--pub-bar-border, var(--color-champagne)) / 0.1);
+}
+
+/* Texto principal na toolbar — labels, cidades, especialidades */
+.pub-bar-text {
+  color: rgb(
+    var(--pub-bar-text-rgb, 255 255 255) / var(--pub-bar-text-opacity, 0.9)
+  );
+}
+
+/* Texto atenuado / separadores de texto */
+.pub-bar-muted {
+  color: rgb(var(--pub-bar-text-rgb, 255 255 255) / 0.7);
+}
+
+/* Ícones da toolbar — cor champagne/acento do tema */
+.pub-bar-icon {
+  color: rgb(var(--pub-bar-icon, var(--color-champagne)));
+}
+
+/* Cor de destaque ativo */
+.pub-bar-accent {
+  color: rgb(var(--pub-bar-accent, var(--color-gold)));
+}
+.hover\:pub-bar-accent:hover {
+  color: rgb(var(--pub-bar-accent, var(--color-gold)));
+}
+
+/* Botão padrão — fundo quase invisível, borda muito fina */
+.pub-bar-btn {
+  background-color: rgb(var(--pub-bar-btn-bg, 255 255 255) / 0.05);
+  border-color: rgb(var(--pub-bar-btn-border, 255 255 255) / 0.2);
+  color: rgb(
+    var(--pub-bar-text-rgb, 255 255 255) / var(--pub-bar-text-opacity, 0.9)
+  );
+}
+.pub-bar-btn:hover {
+  background-color: rgb(var(--pub-bar-btn-bg, 255 255 255) / 0.1);
+  border-color: rgb(var(--pub-bar-btn-border, 255 255 255) / 0.3);
+}
+
+/* Botão CTA principal (Baixar, Contato) */
+.pub-bar-btn-cta {
+  background-color: rgb(var(--pub-bar-cta-bg, var(--color-champagne)));
+  color: rgb(var(--pub-bar-cta-text, var(--color-petroleum)));
+  border-color: rgb(var(--pub-bar-cta-bg, var(--color-champagne)));
+}
+.pub-bar-btn-cta:hover {
+  background-color: rgb(var(--pub-bar-accent, var(--color-gold)));
+  border-color: rgb(var(--pub-bar-accent, var(--color-gold)));
+  color: rgb(var(--pub-bar-cta-text, var(--color-petroleum)));
+}
+
+/* Divisores de linha */
+.pub-bar-divider {
+  background-color: rgb(var(--pub-bar-text-rgb, 255 255 255) / 0.15);
+}
+
+/* Fundo do painel gaveta */
+.pub-bar-drawer {
+  background-color: rgb(var(--pub-bar-drawer-bg, var(--color-petroleum)));
+}
+
+/* Borda do painel gaveta e separadores internos */
+.pub-bar-drawer-border {
+  border-color: rgb(var(--pub-bar-text-rgb, 255 255 255) / 0.1);
+}
+
+/* Estado ativo de filtro/tag selecionada */
+.pub-bar-active {
+  background-color: rgb(var(--pub-bar-accent, var(--color-gold)) / 0.1);
+  border-color: rgb(var(--pub-bar-accent, var(--color-gold)) / 0.4);
+  color: rgb(var(--pub-bar-accent, var(--color-gold)));
+}
+
+/* Estado ativo para botões de controle (câmera, layout, etc.) */
+.pub-bar-control-active {
+  background-color: rgb(var(--pub-bar-cta-bg));
+  border-color: rgb(var(--pub-bar-cta-bg));
+  color: rgb(var(--pub-bar-cta-text));
+}
+.pub-bar-control-active .pub-bar-icon {
+  color: rgb(var(--pub-bar-cta-text));
+}
+
+/* Força a cor de fundo correta para tags ativas no tema branco */
+[data-theme='EDITORIAL_WHITE']
+  .pub-bar-drawer
+  button.pub-bar-btn-cta.border-current {
+  background-color: rgb(var(--pub-bar-cta-bg));
+  border-color: rgb(var(--pub-bar-cta-bg));
+  color: rgb(var(--pub-bar-cta-text));
+}
+
+/* Dropdown interno da gaveta */
+.pub-bar-dropdown {
+  background-color: rgb(var(--pub-bar-bg, var(--color-petroleum)));
+  border-color: rgb(var(--pub-bar-text-rgb, 255 255 255) / 0.1);
+}
+
+/*
+  Acento do GaleriaHero — sempre visível sobre fundo escuro (foto/overlay).
+  Independente do tema da toolbar: temas claros (EDITORIAL_WHITE) usam
+  prata/branco em vez de dourado, temas escuros usam champagne/acento do tema.
+*/
+.pub-hero-accent {
+  color: rgb(var(--pub-hero-accent, var(--color-champagne)));
+}
+.pub-hero-accent-bg {
+  background-color: rgb(var(--pub-hero-accent, var(--color-champagne)));
 }

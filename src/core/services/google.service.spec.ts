@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import * as googleService from './google.service';
 
 // =========================================================================
@@ -402,7 +403,7 @@ describe('Google Service - Suite Completa de Testes', () => {
   // =========================================================================
   describe('getValidGoogleTokenService - Casos de Sucesso', () => {
     it('deve retornar token em cache se ainda válido', async () => {
-      const futureTime = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min no futuro
+      const futureTime = new Date(nowFn().getTime() + 10 * 60 * 1000).toISOString(); // 10 min no futuro
       const mockSupabase = createMockSupabase({
         google_refresh_token: 'refresh-token',
         google_access_token: 'cached-token',
@@ -421,7 +422,7 @@ describe('Google Service - Suite Completa de Testes', () => {
     });
 
     it('deve renovar token se expirado e salvar no banco', async () => {
-      const pastTime = new Date(Date.now() - 1000).toISOString(); // Expirado
+      const pastTime = new Date(nowFn().getTime() - 1000).toISOString(); // Expirado
       const mockSupabase = createMockSupabase({
         google_refresh_token: 'refresh-token',
         google_access_token: 'old-token',

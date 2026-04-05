@@ -1,17 +1,15 @@
 // vitest.setup.ts
-import { vi } from 'vitest';
+import { vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
-// Limpa o DOM após cada teste para evitar poluição entre testes
 afterEach(() => {
   cleanup();
 });
 
 import { webcrypto } from 'node:crypto';
 
-// Força a injeção mesmo que o JSDOM tente proteger o objeto
 Object.defineProperty(globalThis, 'crypto', {
   value: webcrypto,
   configurable: true,
@@ -19,66 +17,63 @@ Object.defineProperty(globalThis, 'crypto', {
   writable: true,
 });
 
-// Às vezes o jose busca especificamente no global (Node antigo)
 if (typeof global !== 'undefined' && !global.crypto) {
   (global as any).crypto = webcrypto;
 }
-// 1. Criamos uma função que gera o objeto de mock sempre limpo e completo
-const createMockClient = () => {
-  const mock = {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: 'mock-user-id', email: 'teste@fotos.com' } },
-        error: null,
-      }),
-      getSession: vi
-        .fn()
-        .mockResolvedValue({ data: { session: {} }, error: null }),
-    },
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-    single: vi
-      .fn()
-      .mockResolvedValue({ data: { studio_id: 'studio_123' }, error: null }),
-    insert: vi.fn().mockResolvedValue({ error: null }),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    storage: {
-      from: vi.fn().mockReturnThis(),
-      upload: vi.fn().mockResolvedValue({ error: null }),
-      getPublicUrl: vi
-        .fn()
-        .mockReturnValue({ data: { publicUrl: 'http://foto.com' } }),
-    },
-    // O "segredo" para o await funcionar em queries encadeadas
-    then: vi
-      .fn()
-      .mockImplementation((resolve) => resolve({ data: [], error: null })),
-  };
-  return mock;
-};
 
-// 2. Instância única para ser usada nos testes
+// Nota: console.* já está suprimido via silent:true no vitest.config.ts.
+// O beforeEach abaixo é mantido como fallback para arquivos que restauram mocks
+// explicitamente (vi.restoreAllMocks) e precisam do silenciamento de volta.
+beforeEach(() => {
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+});
+
+const createMockClient = () => ({
+  auth: {
+    getUser: vi.fn().mockResolvedValue({
+      data: { user: { id: 'mock-user-id', email: 'teste@fotos.com' } },
+      error: null,
+    }),
+    getSession: vi
+      .fn()
+      .mockResolvedValue({ data: { session: {} }, error: null }),
+  },
+  from: vi.fn().mockReturnThis(),
+  select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  order: vi.fn().mockReturnThis(),
+  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  single: vi
+    .fn()
+    .mockResolvedValue({ data: { studio_id: 'studio_123' }, error: null }),
+  insert: vi.fn().mockResolvedValue({ error: null }),
+  update: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  storage: {
+    from: vi.fn().mockReturnThis(),
+    upload: vi.fn().mockResolvedValue({ error: null }),
+    getPublicUrl: vi
+      .fn()
+      .mockReturnValue({ data: { publicUrl: 'http://foto.com' } }),
+  },
+  then: vi
+    .fn()
+    .mockImplementation((resolve) => resolve({ data: [], error: null })),
+});
+
 const singletonMock = createMockClient();
 
-// 3. Mock do Supabase Client (Browser) - apenas se não estiver testando o próprio arquivo
-// O mock será sobrescrito nos testes específicos que precisam testar o supabase.client.ts
-
-// 4. Mock do Supabase Server
 vi.mock('@/lib/supabase.server', () => ({
   createSupabaseServerClient: vi.fn(() => singletonMock),
   createSupabaseServerClientReadOnly: vi.fn(() => singletonMock),
 }));
 
-// 5. Mocks Globais de Infraestrutura
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
   unstable_cache: vi.fn((fn, _key, _options) => {
-    // Simula o comportamento do unstable_cache: retorna uma função que executa fn quando chamada
     return (...args: any[]) => fn(...args);
   }),
 }));
@@ -90,7 +85,6 @@ vi.mock('next/headers', () => ({
   })),
 }));
 
-// Mock do React.cache que pode não estar presente no ambiente de teste
 vi.mock('react', async (importOriginal) => {
   const actual = await importOriginal<any>();
   return {
@@ -99,5 +93,4 @@ vi.mock('react', async (importOriginal) => {
   };
 });
 
-// Exportamos a instância única para que você possa usar nos arquivos .test.ts
 export { singletonMock as mockSupabaseClient };

@@ -7,6 +7,8 @@ export interface Profile {
   username: string;
   mini_bio?: string;
   phone_contact?: string;
+  /** E-mail (pode vir do auth ou de tb_profiles quando gravado). */
+  email?: string | null;
   instagram_link?: string;
   website?: string;
   operating_cities: string[];
@@ -17,6 +19,8 @@ export interface Profile {
   plan_key: PlanKey;
   plan_trial_expires?: string; // ISO Date
   is_trial: boolean;
+  /** Usuário isento: acesso vitalício ao plan_key atual; ignora expiração/downgrade. */
+  is_exempt?: boolean;
 
   created_at: string;
   updated_at: string;
@@ -32,6 +36,13 @@ export interface Profile {
   accepted_at: string;
   specialty?: string;
   custom_specialties?: string[];
+  theme_key?: string; // PHOTOGRAPHER | DARK_CINEMA | EDITORIAL_WHITE | NATURE | NOCTURNAL_LUXURY | OFF_WHITE | PLATINUM | WARM_BLUSH
+  /** Plano pago anterior (ex.: antes de downgrade por inadimplência), para reativação. */
+  last_paid_plan?: PlanKey | string | null;
+  /** Último tema Elite antes de downgrade; usado na reativação PRO/PREMIUM. */
+  last_paid_theme_key?: string | null;
+  /** Campo JSONB para metadados diversos (ex.: last_downgrade_alert_viewed). */
+  metadata?: Record<string, unknown> | null;
 }
 
 // 🎯 Zod Schema atualizado para suportar o novo JSON
@@ -44,6 +55,7 @@ export const UserSettingsSchema = z.object({
   defaults: z.object({
     is_public: z.boolean().default(true), // 👈 Adicionado campo de privacidade padrão
     list_on_profile: z.boolean().default(false),
+    show_phone_on_public_profile: z.boolean().default(true), // exibir WhatsApp no perfil público
     google_drive_root_id: z.string().default(''), // ID da pasta inicial
     google_drive_root_name: z.string().default(''), // Nome da pasta inicial
     rename_files_sequential: z.boolean().default(false), // Padrão de renomeação

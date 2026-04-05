@@ -1,91 +1,112 @@
 'use client';
+
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Check,
   X,
   Loader2,
   ChevronDown,
-  ChevronUp,
-  Image as ImageIcon,
+  Images,
+  FolderOpen,
+  HardDrive,
   Users,
   FileArchive,
-  Link as LinkIcon,
+  BarChart2,
+  Bell,
+  Shield,
+  UserRound,
+  Sparkles,
   ShieldCheck,
+  Globe,
 } from 'lucide-react';
+import { useAuth } from '@photos/core-auth';
 import EditorialCard from '@/components/ui/EditorialCard';
 import EditorialView from '@/components/layout/EditorialView';
 import {
-  getPlansByDomain,
   COMMON_FEATURES,
   PlanKey,
   PERMISSIONS_BY_PLAN,
   PlanPermissions,
   SegmentType,
   PLANS_BY_SEGMENT,
-  FEATURE_DESCRIPTIONS,
+  formatPhotoCredits,
+  PIX_DISCOUNT_PERCENT,
 } from '@/core/config/plans';
-
 import { useSegment } from '@/hooks/useSegment';
-import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import FeaturePreview from '@/components/ui/FeaturePreview';
+import BaseModal from '@/components/ui/BaseModal';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
-export default function PlanosPage() {
+const OPEN_UPGRADE_KEY = 'openUpgrade';
+
+export default function PlanosContent() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<
+    'monthly' | 'semester' | 'annual'
+  >('monthly');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {},
   );
+  const [loginRequiredModalOpen, setLoginRequiredModalOpen] = useState(false);
+  const [pendingPlanKey, setPendingPlanKey] = useState<PlanKey | null>(null);
 
   const { segment, terms } = useSegment();
 
-  // 1. Grupos normalizados para evitar erro de comparação
-  const groups = useMemo(() => {
-    return Array.from(
-      new Set(COMMON_FEATURES.map((f) => f.group.trim().toUpperCase())),
-    );
-  }, []);
+  const handlePlanCta = (key: PlanKey) => {
+    if (authLoading) return;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(OPEN_UPGRADE_KEY, key);
+      } catch {
+        // ignore
+      }
+    }
+    setLoadingPlan(key);
+    if (user) {
+      router.push('/dashboard');
+    } else {
+      setPendingPlanKey(key);
+      setLoginRequiredModalOpen(true);
+    }
+  };
+
+  const closeLoginRequiredModal = () => {
+    setLoginRequiredModalOpen(false);
+    setPendingPlanKey(null);
+    setLoadingPlan(null);
+  };
+
+  const groups = useMemo(
+    () =>
+      Array.from(
+        new Set(COMMON_FEATURES.map((f) => f.group.trim().toUpperCase())),
+      ),
+    [],
+  );
 
   useEffect(() => {
     setMounted(true);
-    // Inicializa todos os grupos como abertos
     setExpandedGroups(Object.fromEntries(groups.map((g) => [g, true])));
   }, [groups]);
 
   if (!mounted) return null;
 
-  const segmentPlans =
-    PLANS_BY_SEGMENT[segment as keyof typeof PLANS_BY_SEGMENT];
+  const segmentPlans = PLANS_BY_SEGMENT[segment as SegmentType];
   const planosKeys = Object.keys(segmentPlans) as PlanKey[];
 
-  const toggleGroup = (name: string) => {
+  const toggleGroup = (name: string) =>
     setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
-  };
 
-  const getFeatureValue = (
-    label: string,
-    planKey: PlanKey,
-    planIdx: number,
-  ) => {
+  const getFeatureValue = (label: string, planIdx: number) => {
     const feature = COMMON_FEATURES.find((f) => f.label === label);
     if (!feature) return '—';
-
-    // 🎯 Prioridade: Se existir um array de valores amigáveis (values),
-    // exibimos o texto correspondente ao índice do plano.
-    if (feature.values && feature.values[planIdx] !== undefined) {
-      const val = feature.values[planIdx];
-      if (val === true) return true; // Para renderizar o ícone de Check
-      if (val === false) return false; // Para renderizar o ícone de X
-      return val;
-    }
-
-    // Fallback para valores brutos das permissões (apenas se não houver 'values' amigáveis)
-    if (feature.key) {
-      const val =
-        PERMISSIONS_BY_PLAN[planKey][feature.key as keyof PlanPermissions];
-      return val === 9999 ? 'Ilimitado' : val;
-    }
-
-    return '—';
+    const val = feature.values?.[planIdx];
+    if (val === undefined) return '—';
+    return val;
   };
 
   return (
@@ -94,66 +115,114 @@ export default function PlanosPage() {
       subtitle={`A estrutura definitiva para sua entrega como ${terms.singular}.`}
     >
       <main className="w-full -mt-4 md:-mt-8">
-        {/* SELETOR DE PERÍODO */}
-        <div className="flex items-center justify-between gap-2 mb-10 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm max-w-[280px] md:max-w-sm w-full mx-auto">
-          <button
-            onClick={() => setIsAnnual(false)}
-            className={`flex-1 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all ${!isAnnual ? 'bg-petroleum text-white shadow-md' : 'text-petroleum/40'}`}
-          >
-            Mensal
-          </button>
-          <button
-            onClick={() => setIsAnnual(true)}
-            className={`relative flex-1 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all ${isAnnual ? 'bg-petroleum text-white shadow-md' : 'text-petroleum/40'}`}
-          >
-            Anual
-            <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">
-              -20%
-            </span>
-          </button>
+        {/* ── SELETOR DE PERÍODO ── */}
+        <div className="flex flex-col items-center gap-3 mb-10">
+          <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-full border border-slate-200 shadow-sm w-fit mx-auto">
+            {(
+              [
+                { value: 'monthly', label: 'Mensal', badge: null },
+                { value: 'semester', label: 'Semestral', badge: '-12%' },
+                { value: 'annual', label: 'Anual', badge: '-20%' },
+              ] as const
+            ).map(({ value, label, badge }) => (
+              <button
+                key={value}
+                onClick={() => setBillingCycle(value)}
+                className={`relative py-2 px-4 md:px-5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                  billingCycle === value
+                    ? 'bg-petroleum text-white shadow-md'
+                    : 'text-petroleum/40 hover:text-petroleum/70'
+                }`}
+              >
+                {label}
+                {badge && (
+                  <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                    {badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          {(billingCycle === 'semester' || billingCycle === 'annual') && (
+            <p className="text-[10px] font-semibold text-petroleum/80 text-center max-w-md">
+              <span className="text-emerald-600 font-bold">
+                +{PIX_DISCOUNT_PERCENT}% OFF
+              </span>{' '}
+              no pagamento com PIX
+            </p>
+          )}
         </div>
 
-        {/* GRID DE CARDS SUPERIORES */}
+        {/* ── GRID DE CARDS ── */}
         <section className="max-w-[1650px] mx-auto px-4 md:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 mb-12">
-            {planosKeys.map((key, idx) => {
+            {planosKeys.map((key) => {
               const planInfo = segmentPlans[key];
+              const perms = PERMISSIONS_BY_PLAN[key];
               const isPro = key === 'PRO';
-              const displayPrice = isAnnual
-                ? planInfo.yearlyPrice
-                : planInfo.price;
+              const displayPrice =
+                billingCycle === 'annual'
+                  ? planInfo.yearlyPrice
+                  : billingCycle === 'semester'
+                    ? planInfo.semesterPrice
+                    : planInfo.price;
 
-              const indicators = [
+              const indicators: Array<{
+                icon: React.ReactElement;
+                label: string;
+                value: string;
+                permKey?: keyof PlanPermissions;
+              }> = [
                 {
-                  icon: <ImageIcon />,
-                  label: `Galerias ativas`,
-                  value: getFeatureValue('Galerias Ativas', key, idx),
+                  icon: <Images />,
+                  label: 'Cota de fotos/vídeos',
+                  value: formatPhotoCredits(perms.photoCredits),
+                  permKey: 'photoCredits',
+                },
+                {
+                  icon: <FolderOpen />,
+                  label: 'Galerias ativas',
+                  value: `Até ${perms.maxGalleriesHardCap} galerias`,
+                  permKey: 'maxGalleries',
+                },
+                {
+                  icon: <HardDrive />,
+                  label: 'Arquivos/galeria',
+                  value: `até ${perms.maxPhotosPerGallery}`,
+                  permKey: 'maxPhotosPerGallery',
+                },
+
+                {
+                  icon: <Globe />,
+                  label: 'Subdomínio',
+                  value: perms.useSubdomain ? 'Ativado' : 'Não',
+                  permKey: 'useSubdomain',
+                },
+                {
+                  icon: <BarChart2 />,
+                  label: 'Estatísticas',
+                  value: perms.canAccessStats ? 'Ativadas' : 'Não',
+                  permKey: 'canAccessStats',
+                },
+                {
+                  icon: <Bell />,
+                  label: 'Notificações',
+                  value: perms.canAccessNotifyEvents ? 'Ativadas' : 'Não',
+                  permKey: 'canAccessNotifyEvents',
                 },
                 {
                   icon: <Users />,
                   label: 'Visitantes',
-                  value:
-                    getFeatureValue(
-                      'Formulário de Acesso à galeria',
-                      key,
-                      idx,
-                    ) === false
-                      ? 'Acesso Livre'
-                      : 'Cadastro de visitantes',
+                  value: perms.canCaptureLeads
+                    ? 'Cadastro de visitantes'
+                    : 'Acesso Livre',
+                  permKey: 'canCaptureLeads',
                 },
                 {
                   icon: <FileArchive />,
-                  label: `Capacidade por ${terms.item}`,
-                  value: getFeatureValue('Capacidade por Galeria', key, idx),
-                },
-                {
-                  icon: <LinkIcon />,
-                  label: 'Links externos',
-                  value: getFeatureValue(
-                    'Links de Download Externos',
-                    key,
-                    idx,
-                  ),
+                  label: 'Resolução ZIP',
+                  value: perms.zipSizeLimit,
+                  permKey: 'zipSizeLimit',
                 },
               ];
 
@@ -162,10 +231,10 @@ export default function PlanosPage() {
                   key={key}
                   title={planInfo.name}
                   icon={<planInfo.icon size={32} strokeWidth={1.5} />}
-                  accentColor={isPro ? 'gold' : 'champagne'}
+                  accentColor={isPro ? 'gold' : 'petroleum'}
                   badge={isPro ? 'Mais Escolhido' : undefined}
                 >
-                  <div className="text-center mb-4">
+                  <div className="text-center mb-3">
                     <div className="flex items-start justify-center gap-1 text-petroleum">
                       <span className="text-[14px] font-semibold mt-2 text-gold">
                         R$
@@ -174,53 +243,41 @@ export default function PlanosPage() {
                         {displayPrice.toFixed(0)}
                       </span>
                     </div>
-                    <p className="text-[9px] font-semibold text-petroleum/70 uppercase tracking-widest mt-1">
-                      {isAnnual ? 'Equivalente / mês' : 'Cobrança mensal'}
+                    <p className="text-[9px] font-semibold text-petroleum/70 uppercase tracking-widest mt-0.5">
+                      {billingCycle === 'annual'
+                        ? 'Equivalente / mês'
+                        : billingCycle === 'semester'
+                          ? 'Equivalente / mês'
+                          : 'Cobrança mensal'}
                     </p>
                   </div>
 
-                  <div className="space-y-2 mb-6 flex-grow">
-                    {indicators.map((ind, i) => {
-                      const featureConfig = COMMON_FEATURES.find(
-                        (f) => f.label === ind.label,
-                      );
-                      const description = featureConfig?.key
-                        ? FEATURE_DESCRIPTIONS[
-                            featureConfig.key as keyof PlanPermissions
-                          ]
-                        : null;
-                      return (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-gold">
-                            {React.cloneElement(ind.icon as any, {
-                              size: 16,
-                              strokeWidth: 2,
-                            })}
-                          </div>
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[12px] font-semibold text-petroleum leading-tight">
-                                {ind.value}
-                              </span>
-                              {description && (
-                                <InfoTooltip
-                                  title={description.label}
-                                  content={description.description}
-                                />
-                              )}
-                            </div>
-                            <span className="text-[10px] text-petroleum/70 font-medium uppercase tracking-normal">
+                  <div className="space-y-2.5 mb-5 flex-grow">
+                    {indicators.map((ind, i) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-gold [&>svg]:w-3.5 [&>svg]:h-3.5 [&>svg]:stroke-[2]">
+                          {ind.icon}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[11px] font-semibold text-petroleum leading-tight">
+                            {ind.value}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] text-petroleum/70 font-semibold uppercase tracking-widest">
                               {ind.label}
                             </span>
+                            {ind.permKey && (
+                              <FeaturePreview featureKey={ind.permKey} />
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
 
                   <button
-                    onClick={() => setLoadingPlan(key)}
-                    disabled={!!loadingPlan}
+                    onClick={() => handlePlanCta(key)}
+                    disabled={!!loadingPlan || authLoading}
                     className={`w-full h-12 flex items-center justify-center gap-3 rounded-xl transition-all font-semibold text-[10px] uppercase tracking-widest ${
                       isPro
                         ? 'bg-petroleum text-white shadow-xl hover:bg-black'
@@ -246,7 +303,7 @@ export default function PlanosPage() {
           </div>
         </section>
 
-        {/* TABELA TÉCNICA */}
+        {/* ── TABELA TÉCNICA ── */}
         <section className="max-w-[1650px] mx-auto px-4 md:px-6">
           <div className="text-center mb-8">
             <h2 className="text-petroleum font-bold text-lg md:text-2xl uppercase tracking-[0.2em] italic">
@@ -259,19 +316,20 @@ export default function PlanosPage() {
               <table className="w-full text-left border-collapse min-w-[1000px]">
                 <thead>
                   <tr className="bg-petroleum">
-                    <th className="px-7 text-[11px] font-semibold uppercase tracking-widest text-champagne border-b border-white/5">
+                    <th className="px-7 py-5 text-[11px] font-semibold uppercase tracking-widest text-champagne border-b border-white/5 sticky left-0 z-50 bg-petroleum">
                       Recursos
                     </th>
                     {planosKeys.map((key) => {
                       const planInfo = segmentPlans[key];
-                      const displayPrice = isAnnual
-                        ? planInfo.yearlyPrice
-                        : planInfo.price;
-
+                      const displayPrice =
+                        billingCycle === 'annual'
+                          ? planInfo.yearlyPrice
+                          : billingCycle === 'semester'
+                            ? planInfo.semesterPrice
+                            : planInfo.price;
                       return (
                         <th key={key} className="p-6 border-b border-white/5">
                           <div className="flex flex-col items-center gap-1">
-                            {/* Linha Horizontal: Ícone + Nome */}
                             <div className="flex items-center gap-2 mb-1">
                               <div className="text-champagne">
                                 <planInfo.icon size={18} strokeWidth={2} />
@@ -280,10 +338,8 @@ export default function PlanosPage() {
                                 {planInfo.name}
                               </span>
                             </div>
-
-                            {/* Preço do Plano */}
                             <div className="flex items-baseline gap-0.5">
-                              <span className="text-[9px] font-medium champagne">
+                              <span className="text-[9px] font-medium text-gold">
                                 R$
                               </span>
                               <span className="text-xl font-semibold text-white tracking-tighter italic">
@@ -299,6 +355,7 @@ export default function PlanosPage() {
                     })}
                   </tr>
                 </thead>
+
                 <tbody>
                   {groups.map((groupName) => (
                     <React.Fragment key={groupName}>
@@ -312,11 +369,13 @@ export default function PlanosPage() {
                         >
                           <div className="flex items-center gap-3">
                             <ChevronDown
-                              size={14}
+                              size={16}
                               strokeWidth={2.5}
-                              className={`text-gold transition-transform duration-500 ${expandedGroups[groupName] ? '' : '-rotate-90'}`}
+                              className={`text-gold transition-transform duration-300 ${
+                                expandedGroups[groupName] ? '' : '-rotate-90'
+                              }`}
                             />
-                            <span className="text-[10px] font-bold uppercase tracking-luxury-widest text-gold">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-gold">
                               {groupName}
                             </span>
                           </div>
@@ -331,51 +390,40 @@ export default function PlanosPage() {
                             key={`${groupName}-${fIdx}`}
                             className="hover:bg-slate-50 transition-colors group"
                           >
-                            <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 text-[12px] font-semibold text-petroleum">
+                            <td className="py-4 px-8 border-b border-slate-100 bg-white sticky left-0 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                               <div className="flex items-center gap-2">
-                                {feature.label}
-                                {feature.key &&
-                                  FEATURE_DESCRIPTIONS[
-                                    feature.key as keyof PlanPermissions
-                                  ] && (
-                                    <InfoTooltip
-                                      title={
-                                        FEATURE_DESCRIPTIONS[
-                                          feature.key as keyof PlanPermissions
-                                        ].label
-                                      }
-                                      content={
-                                        FEATURE_DESCRIPTIONS[
-                                          feature.key as keyof PlanPermissions
-                                        ].description
-                                      }
-                                      align="left"
-                                    />
-                                  )}
+                                <span className="text-[12px] font-semibold text-petroleum opacity-80 group-hover:opacity-100">
+                                  {feature.label}
+                                </span>
+                                {feature.key && (
+                                  <FeaturePreview
+                                    featureKey={
+                                      feature.key as keyof PlanPermissions
+                                    }
+                                  />
+                                )}
                               </div>
                             </td>
                             {planosKeys.map((key, pIdx) => {
-                              const val = getFeatureValue(
-                                feature.label,
-                                key,
-                                pIdx,
-                              );
+                              const val = getFeatureValue(feature.label, pIdx);
+                              const isLastColumn =
+                                pIdx === planosKeys.length - 1;
                               return (
                                 <td
                                   key={`${key}-${fIdx}`}
                                   className="py-4 px-4 border-b border-slate-100 text-center"
                                 >
-                                  <div className="flex items-center justify-center">
+                                  <div className="flex items-center justify-center gap-1.5">
                                     {val === true ? (
                                       <Check
                                         size={18}
-                                        className="text-emerald"
+                                        className="text-emerald-600"
                                         strokeWidth={3}
                                       />
                                     ) : val === false ? (
                                       <X
                                         size={16}
-                                        className="text-slate-600"
+                                        className="text-slate-300"
                                         strokeWidth={2}
                                       />
                                     ) : (
@@ -395,6 +443,7 @@ export default function PlanosPage() {
               </table>
             </div>
           </div>
+
           <div className="flex flex-col md:flex-row items-center gap-3 bg-petroleum/5 border border-petroleum/10 px-6 py-4 rounded-2xl md:rounded-full w-fit mx-auto mt-12">
             <ShieldCheck size={18} className="text-gold" />
             <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-petroleum/70 text-center">
@@ -403,6 +452,74 @@ export default function PlanosPage() {
           </div>
         </section>
       </main>
+
+      <BaseModal
+        isOpen={loginRequiredModalOpen}
+        onClose={closeLoginRequiredModal}
+        title="Identificação"
+        subtitle="Acesse seu painel profissional"
+        maxWidth="lg"
+        headerIcon={
+          <div className="shrink-0 p-2.5 rounded-luxury bg-gold/10 border border-gold/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+            <UserRound size={22} strokeWidth={2.5} className="text-gold" />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col gap-4 w-full px-2 items-center">
+            <GoogleSignInButton variant="full" />
+            <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-100">
+              <Shield size={10} className="text-emerald-500/70" />
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400">
+                Ambiente Seguro • Criptografia SSL 256-bit
+              </p>
+            </div>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-6 py-2">
+          <div className="relative overflow-hidden bg-slate-50/60 p-3 rounded-2xl border border-slate-100 flex items-start gap-3 text-left">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gold/30 rounded-l" />
+            <div className="shrink-0 w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center mt-1.5">
+              <Sparkles size={18} strokeWidth={2} className="text-gold" />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-[13px] md:text-[14px] leading-relaxed text-petroleum/85 font-medium">
+                Utilize sua conta Google para gerenciar suas galerias e
+                conteúdos profissionais com segurança total.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-5 px-1">
+            <div className="flex items-start gap-4 group">
+              <div className="w-8 h-8 rounded-full bg-petroleum text-gold flex items-center justify-center shrink-0 font-semibold text-[12px] border-2 border-gold/20 shadow-sm transition-transform group-hover:scale-105 mt-1.5">
+                1
+              </div>
+              <p className="text-[13px] text-petroleum/75 leading-relaxed">
+                Para contratar o plano{' '}
+                {pendingPlanKey && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gold/10 text-petroleum font-semibold text-[11px] uppercase tracking-tighter border border-gold/20">
+                    {segmentPlans?.[pendingPlanKey]?.name ?? pendingPlanKey}
+                  </span>
+                )}
+                , use o botão &quot;Entrar com Google&quot; abaixo.
+              </p>
+            </div>
+            <div className="flex items-start gap-4 group">
+              <div className="w-8 h-8 rounded-full bg-petroleum text-gold flex items-center justify-center shrink-0 font-semibold text-[12px] border-2 border-gold/20 shadow-sm transition-transform group-hover:scale-105 mt-1.5">
+                2
+              </div>
+              <p className="text-[13px] text-petroleum/75 leading-relaxed pt-1.5">
+                Em seguida você acessa o{' '}
+                <strong className="text-petroleum font-semibold tracking-[0.02em]">
+                  Espaço de Galerias
+                </strong>{' '}
+                para finalizar a assinatura e começar a usar.
+              </p>
+            </div>
+          </div>
+        </div>
+      </BaseModal>
     </EditorialView>
   );
 }

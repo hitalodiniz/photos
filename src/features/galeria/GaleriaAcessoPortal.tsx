@@ -9,7 +9,14 @@ import {
 } from '@/actions/auth.actions';
 import { Galeria } from '@/core/types/galeria';
 import { getCookie } from '@/core/utils/cookie-helper';
-import { Mail, Smartphone, CheckCircle, Loader2, User } from 'lucide-react';
+import {
+  Mail,
+  Smartphone,
+  CheckCircle,
+  Loader2,
+  User,
+  Check,
+} from 'lucide-react';
 
 import PasswordInput from '@/components/ui/PasswordInput';
 import * as z from 'zod';
@@ -44,8 +51,13 @@ export default function GalleryAccessPortal({
   const hasPassword = !galeria.is_public;
   const leadsEnabled = galeria.leads_enabled;
 
-  // 🎯 AUTO-SUBMIT CONDICIONAL:
-  // Só envia automático se NÃO houver captura de leads e a senha tiver 4 dígitos.
+  // Resolve tema da galeria
+  const themeKey =
+    galeria?.theme_key && String(galeria.theme_key).trim() !== ''
+      ? galeria.theme_key
+      : 'PHOTOGRAPHER';
+
+  // 🎯 AUTO-SUBMIT CONDICIONAL
   useEffect(() => {
     if (
       hasPassword &&
@@ -60,9 +72,7 @@ export default function GalleryAccessPortal({
   useEffect(() => {
     if (!isOpen || !onSuccess) return;
     const leadCaptured = localStorage.getItem(`lead_captured_${galeria.id}`);
-    if (leadCaptured === 'true' && !hasPassword) {
-      onSuccess();
-    }
+    if (leadCaptured === 'true' && !hasPassword) onSuccess();
   }, [isOpen, galeria.id, hasPassword, onSuccess]);
 
   const coverUrl = useMemo(() => {
@@ -155,7 +165,6 @@ export default function GalleryAccessPortal({
           whatsapp: formData.whatsapp.replace(/\D/g, ''),
           visitorId: sessionVisitorId,
         });
-
         if (!leadResult.success) {
           setGlobalError(leadResult.error || 'Erro ao processar dados.');
           setLoading(false);
@@ -172,9 +181,8 @@ export default function GalleryAccessPortal({
         );
         if (result && !result.success) {
           setErrors({ password: result.error || 'Senha incorreta' });
-          setFormData((prev) => ({ ...prev, password: '' })); // Limpa para permitir novo shake
+          setFormData((prev) => ({ ...prev, password: '' }));
           setLoading(false);
-          // 🎯 Força o foco no input após o erro
           setTimeout(() => {
             const pinInput = document.getElementById('pin-hidden-input');
             pinInput?.focus();
@@ -193,12 +201,12 @@ export default function GalleryAccessPortal({
   if (!isOpen) return null;
 
   const footer = (
-    <div className="w-full">
+    <div className="w-full" data-theme={themeKey}>
       <button
         form="access-portal-form"
         type="submit"
         disabled={loading}
-        className="btn-luxury-primary w-full flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+        className="pub-bar-btn-cta border w-full h-11 flex items-center justify-center gap-2 rounded-md text-[10px] font-semibold uppercase tracking-widest transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
       >
         {loading ? (
           <>
@@ -208,7 +216,7 @@ export default function GalleryAccessPortal({
         ) : (
           <>
             <CheckCircle
-              size={14}
+              size={16}
               className="group-hover:scale-110 transition-transform"
             />
             <span>Acessar Galeria</span>
@@ -222,10 +230,22 @@ export default function GalleryAccessPortal({
   );
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden px-4">
+    /*
+      data-theme no wrapper garante que pub-bar-* e color-champagne/gold/petroleum
+      resolvam corretamente desde o primeiro render, mesmo sendo um portal/overlay.
+    */
+    <div
+      className="relative min-h-screen w-full flex items-center justify-center overflow-hidden px-4"
+      data-theme={themeKey}
+    >
+      {/* BACKGROUND — foto da galeria com efeito de entrada */}
       <div className="absolute inset-0 z-0">
         <div
-          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[1500ms] ease-in-out ${!isImageActuallyLoaded ? 'scale-110 blur-2xl opacity-50' : 'scale-100 blur-0 opacity-100'}`}
+          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[1500ms] ease-in-out ${
+            !isImageActuallyLoaded
+              ? 'scale-110 blur-2xl opacity-50'
+              : 'scale-100 blur-0 opacity-100'
+          }`}
           style={{ backgroundImage: `url(${coverUrl})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
@@ -241,16 +261,24 @@ export default function GalleryAccessPortal({
         overlayOpacity="20"
         blurLevel="none"
         footer={footer}
+        dataTheme={themeKey}
       >
         <div className="space-y-4">
           {leadsEnabled && (
             <div className="flex items-start gap-3 text-left mb-1">
-              <SegmentIcon className="text-gold w-5 h-5" strokeWidth={1.5} />
+              <SegmentIcon
+                className="shrink-0 w-5 h-5"
+                style={{
+                  color: 'rgb(var(--pub-bar-accent, var(--color-gold)))',
+                }}
+                strokeWidth={1.5}
+              />
               <p className="text-petroleum text-[12px] italic leading-relaxed text-left font-medium">
                 Seja bem-vindo! Informe seus dados para visualizar as fotos.
               </p>
             </div>
           )}
+
           <form
             id="access-portal-form"
             onSubmit={handleSubmit}
@@ -261,7 +289,14 @@ export default function GalleryAccessPortal({
                 {galeria.leads_require_name && (
                   <div className="space-y-1.5">
                     <label>
-                      <User size={12} className="text-gold" /> Nome Completo
+                      <User
+                        size={12}
+                        style={{
+                          color:
+                            'rgb(var(--pub-bar-accent, var(--color-gold)))',
+                        }}
+                      />
+                      Nome Completo
                     </label>
                     <input
                       type="text"
@@ -284,7 +319,14 @@ export default function GalleryAccessPortal({
                   {galeria.leads_require_whatsapp && (
                     <div className="flex-1 space-y-1.5">
                       <label>
-                        <Smartphone size={12} className="text-gold" /> WhatsApp
+                        <Smartphone
+                          size={12}
+                          style={{
+                            color:
+                              'rgb(var(--pub-bar-accent, var(--color-gold)))',
+                          }}
+                        />
+                        WhatsApp
                       </label>
                       <input
                         type="text"
@@ -306,7 +348,14 @@ export default function GalleryAccessPortal({
                   {galeria.leads_require_email && (
                     <div className="flex-1 space-y-1.5">
                       <label>
-                        <Mail size={12} className="text-gold" /> E-mail
+                        <Mail
+                          size={12}
+                          style={{
+                            color:
+                              'rgb(var(--pub-bar-accent, var(--color-gold)))',
+                          }}
+                        />
+                        E-mail
                       </label>
                       <input
                         type="email"
@@ -332,7 +381,7 @@ export default function GalleryAccessPortal({
               <div className="pt-2">
                 <PasswordInput
                   variant={leadsEnabled ? 'compact' : 'pin'}
-                  label="Senha de Acesso"
+                  label={leadsEnabled ? 'Senha PIN' : 'Senha de Acesso'}
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({
@@ -342,41 +391,56 @@ export default function GalleryAccessPortal({
                   }
                   error={errors.password}
                   autoFocus={!leadsEnabled}
+                  themeKey={themeKey}
                 />
               </div>
             )}
 
             {leadsEnabled && (
               <div className="pt-2">
-                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-luxury border border-slate-200">
-                  <div className="relative flex items-center mt-1 shrink-0 cursor-pointer">
-                    <input
-                      id="lgpd-consent"
-                      type="checkbox"
-                      required
-                      className="peer h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold"
-                    />
-                    <CheckCircle
-                      size={12}
-                      className="absolute ml-0.5 text-gold opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
-                    />
-                  </div>
-                  <div className="text-[11px] text-petroleum/80 leading-relaxed">
+                <div className="p-3 bg-slate-50 rounded-luxury border border-slate-200 space-y-3">
+                  {/* 1. Explicação (Topo) */}
+                  <p className="text-[11px] text-petroleum/80 font-medium leading-relaxed">
                     Esta coleta de dados é uma opção do organizador. Os dados
                     são processados para:
-                    <span className="font-bold">
-                      {' '}
-                      {galeria.lead_purpose || 'identificação para acesso'}
+                    <span className="font-semibold ml-1">
+                      {galeria.lead_purpose || 'identificação para acesso'}.
                     </span>
-                    . Confira nossa{' '}
-                    <button type="button" className="underline font-bold">
-                      política de privacidade
-                    </button>
-                    .
-                  </div>
+                  </p>
+
+                  {/* 2. Linha de Consentimento (Checkbox + Texto) */}
+                  <label
+                    htmlFor="lgpd-consent"
+                    className="flex items-start gap-3 cursor-pointer group"
+                  >
+                    <div className="relative flex items-center mt-0.5 shrink-0">
+                      <input
+                        id="lgpd-consent"
+                        type="checkbox"
+                        required
+                        className="peer h-4 w-4 rounded border-slate-300 text-gold focus:ring-gold appearance-none border bg-white checked:bg-gold checked:border-gold transition-all"
+                      />
+                      <Check
+                        size={12}
+                        className="absolute ml-0.5 opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none text-white"
+                      />
+                    </div>
+
+                    <div className="text-[10px] text-petroleum/80 leading-snug">
+                      Eu concordo com o processamento dos meus dados e com a{' '}
+                      <button
+                        type="button"
+                        className="underline text-[10px] font-bold hover:text-gold transition-colors upercase"
+                      >
+                        política de privacidade
+                      </button>
+                      .
+                    </div>
+                  </label>
                 </div>
               </div>
             )}
+
             {globalError && (
               <p className="text-red-500 text-[10px] text-center font-semibold uppercase tracking-widest bg-red-500/5 py-2 rounded-luxury border border-red-500/10">
                 {globalError}

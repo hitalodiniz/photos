@@ -1,30 +1,30 @@
 /**
  * ⚠️⚠️⚠️ ARQUIVO CRÍTICO DE SEGURANÇA ⚠️⚠️⚠️
- * 
+ *
  * Este arquivo gerencia:
  * - Proteção de rotas autenticadas (/dashboard, /onboarding)
  * - Redirecionamento de subdomínios
  * - Verificação de autenticação em todas as requisições
- * 
+ *
  * 🔴 IMPACTO DE MUDANÇAS:
  * - Qualquer bug pode permitir acesso não autorizado
  * - Pode quebrar toda a autenticação da aplicação
  * - Pode expor dados sensíveis
- * 
+ *
  * ✅ ANTES DE ALTERAR:
  * 1. Leia CRITICAL_AUTH_FILES.md
  * 2. Leia AUTH_CONTRACT.md
  * 3. Crie/atualize testes unitários
  * 4. Teste extensivamente localmente
  * 5. Solicite revisão de código
- * 
+ *
  * 📋 CHECKLIST OBRIGATÓRIO:
  * [ ] Testes unitários criados/atualizados
  * [ ] Testado em localhost
  * [ ] Testado em produção/staging
  * [ ] Revisão de código aprovada
  * [ ] Documentação atualizada
- * 
+ *
  * 🚨 NÃO ALTERE SEM ENTENDER COMPLETAMENTE O IMPACTO!
  */
 
@@ -33,6 +33,13 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { fetchProfileDirectDB } from '@/core/services/profile.service';
 import { resolveGalleryUrl } from '@/core/utils/url-helper';
+import { PERMISSIONS_BY_PLAN, type PlanKey } from '@/core/config/plans';
+
+function isSubdomainAllowedByCurrentPlan(planKey: unknown): boolean {
+  const normalized = String(planKey ?? 'FREE').toUpperCase() as PlanKey;
+  const perms = PERMISSIONS_BY_PLAN[normalized];
+  return perms?.useSubdomain === true;
+}
 
 export async function middleware(req: NextRequest) {
   const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -85,19 +92,18 @@ export async function middleware(req: NextRequest) {
               // 1. Atualiza na requisição (para o getUser() deste middleware ler agora)
               req.cookies.set(name, value);
 
-              const finalOptions = { 
+              const finalOptions = {
                 ...options,
                 domain: cookieDomain,
                 path: '/',
                 sameSite: 'lax' as const,
                 secure: isProduction,
               };
-              
+
               if (isProduction) {
                 delete finalOptions.maxAge;
                 delete (finalOptions as any).expires;
               }
-
 
               // 2. Atualiza na resposta (para o navegador salvar o cookie)
               response.cookies.set(name, value, finalOptions);
@@ -128,19 +134,21 @@ export async function middleware(req: NextRequest) {
     if (!user) {
       // 🚀 LOG: Monitora redirecionamento por falta de usuário
       // console.log(`[Middleware] Usuário não autenticado em ${pathname}, redirecionando para /`);
-      
+
       // Se não houver usuário, redireciona preservando os cookies já setados (como a tentativa de login)
       const redirectUrl = new URL('/', req.url);
       const redirectRes = NextResponse.redirect(redirectUrl);
       // Copia cookies da resposta de auth para a resposta de redirecionamento
-      response.cookies.getAll().forEach(c => redirectRes.cookies.set(c.name, c.value, {
-        path: c.path,
-        domain: c.domain,
-        expires: c.expires,
-        sameSite: c.sameSite,
-        secure: c.secure,
-        httpOnly: c.httpOnly,
-      }));
+      response.cookies.getAll().forEach((c) =>
+        redirectRes.cookies.set(c.name, c.value, {
+          path: c.path,
+          domain: c.domain,
+          expires: c.expires,
+          sameSite: c.sameSite,
+          secure: c.secure,
+          httpOnly: c.httpOnly,
+        }),
+      );
       return redirectRes;
     }
     // 5. Se houver usuário, retornamos a resposta de sucesso
@@ -149,29 +157,34 @@ export async function middleware(req: NextRequest) {
 
   // Detecta se termina com .suagaleria.com.br ou .teste.suagaleria.com.br
   const isHomolog = host.includes(URL_TESTE);
-  const internalMainDomain = isHomolog 
-  ? URL_TESTE 
-  : (process.env.NEXT_PUBLIC_MAIN_DOMAIN && process.env.NEXT_PUBLIC_MAIN_DOMAIN !== 'undefined' 
-      ? process.env.NEXT_PUBLIC_MAIN_DOMAIN 
-      : ACTUAL_HOST);
+  const internalMainDomain = isHomolog
+    ? URL_TESTE
+    : process.env.NEXT_PUBLIC_MAIN_DOMAIN &&
+        process.env.NEXT_PUBLIC_MAIN_DOMAIN !== 'undefined'
+      ? process.env.NEXT_PUBLIC_MAIN_DOMAIN
+      : ACTUAL_HOST;
 
-// Agora comparamos contra o internalMainDomain (que pode ser o de teste ou o real)
-const isSubdomainRequest = host.endsWith(`.${internalMainDomain}`) && host !== internalMainDomain;
-    
+  // Agora comparamos contra o internalMainDomain (que pode ser o de teste ou o real)
+  const isSubdomainRequest =
+    host.endsWith(`.${internalMainDomain}`) && host !== internalMainDomain;
+
   // --- REGRA A: ACESSO VIA SUBDOMÍNIO ---
   if (isSubdomainRequest) {
-// Extrai o subdomínio limpando o sufixo de produção ou homologação
-const subdomain = host.replace(`.${internalMainDomain}`, '').toLowerCase();
+    // Extrai o subdomínio limpando o sufixo de produção ou homologação
+    const subdomain = host.replace(`.${internalMainDomain}`, '').toLowerCase();
     if (subdomain !== 'www') {
       // 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache
       const profile = await fetchProfileDirectDB(subdomain);
 
       if (!profile) return NextResponse.redirect(new URL(SITE_URL));
+      const canUseSubdomain =
+        profile.use_subdomain === true &&
+        isSubdomainAllowedByCurrentPlan(profile.plan_key);
 
       // Se perdeu direito ao subdomínio: hitalo.site.com -> site.com/hitalo
       // 🎯 SE NÃO EXISTE OU NÃO TEM PERMISSÃO -> 404
       // Não corrigimos a URL, apenas dizemos que não existe.
-      if (!profile || !profile.use_subdomain) {
+      if (!profile || !canUseSubdomain) {
         // Fazemos um rewrite para uma rota que não existe ou para o próprio 404 do Next
         const url = req.nextUrl.clone();
         url.pathname = '/404';
@@ -212,9 +225,12 @@ const subdomain = host.replace(`.${internalMainDomain}`, '').toLowerCase();
     ) {
       // 🎯 MIDDLEWARE: Usa fetchProfileDirectDB (sem cache) pois Middleware não suporta unstable_cache
       const profile = await fetchProfileDirectDB(potentialUsername);
+      const canUseSubdomain =
+        profile?.use_subdomain === true &&
+        isSubdomainAllowedByCurrentPlan(profile?.plan_key);
 
       // REDIRECT: site.com/hitalo -> hitalo.site.com/
-      if (profile?.use_subdomain) {
+      if (canUseSubdomain) {
         const correctUrl = resolveGalleryUrl(
           profile.username,
           pathname, // A função vai limpar o "/hitalo" daqui
@@ -239,5 +255,6 @@ export const config = {
      * - _next/image (otimização de imagem do Next)
      * - favicon.ico, sitemap.xml, robots.txt
      */
-'/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)',  ],
+    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)',
+  ],
 };

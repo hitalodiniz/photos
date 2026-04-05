@@ -20,9 +20,9 @@ import { useShare } from '@/hooks/useShare';
 
 const Tooltip = ({ text }: { text: string }) => (
   <div className="hidden md:block absolute -bottom-12 left-1/2 -translate-x-1/2 z-[130] animate-in fade-in zoom-in slide-in-from-top-2 duration-500">
-    <div className="bg-[#F3E5AB] text-black text-[9px] md:text-[10px]  font-semibold px-2 py-1 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10">
+    <div className="pub-bar-bg pub-bar-text text-[9px] md:text-[10px] font-semibold px-2 py-1 rounded shadow-xl whitespace-nowrap relative ring-1 ring-black/10 border pub-bar-drawer-border">
       {text}
-      <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-[#F3E5AB]" />
+      <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-[rgb(var(--pub-bar-bg))]" />
     </div>
   </div>
 );
@@ -260,19 +260,17 @@ export const ToolbarGalleryView = ({
             }
           >
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'pub-bar-btn-cta' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
               {mode === 'selection' ? (
                 <Check
                   size={22}
-                  className={
-                    isFavorited ? 'text-white' : 'text-black dark:text-white'
-                  }
+                  className={isFavorited ? '' : 'text-black dark:text-white'}
                   strokeWidth={2.5}
                 />
               ) : (
                 <Heart
-                  fill={isFavorited ? 'white' : 'none'}
+                  fill={isFavorited ? 'currentColor' : 'none'}
                   size={22}
                   className={
                     isFavorited ? 'text-white' : 'text-black dark:text-white'
@@ -297,13 +295,11 @@ export const ToolbarGalleryView = ({
             }
           >
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${showThumbnails ? 'pub-bar-control-active' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
               <SquareStack
                 size={22}
-                className={
-                  showThumbnails ? 'text-black' : 'text-black dark:text-white'
-                }
+                className={showThumbnails ? '' : 'text-black dark:text-white'}
                 strokeWidth={2.5}
               />
             </div>
@@ -335,10 +331,10 @@ export const ToolbarGalleryView = ({
             }
           >
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB]' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'pub-bar-control-active' : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'}`}
             >
               {isSlideshowActive ? (
-                <Pause size={22} className="text-black" strokeWidth={2.5} />
+                <Pause size={22} strokeWidth={2.5} />
               ) : (
                 <Play
                   size={22}
@@ -402,12 +398,12 @@ export const ToolbarGalleryView = ({
               }}
             >
               {/* Seta apontando para baixo - centralizada */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#F3E5AB] pointer-events-none" />
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[rgb(var(--pub-bar-cta-bg))] pointer-events-none" />
 
               {/* Tooltip - Sem animações que causam piscar */}
               <div
                 data-quality-warning="true"
-                className="bg-[#F3E5AB] shadow-2xl rounded-luxury border border-white/20 text-black relative w-ful pr-6"
+                className="pub-bar-btn-cta shadow-2xl rounded-luxury border pub-bar-drawer-border relative w-ful pr-6"
                 style={{
                   pointerEvents: 'auto',
                   transform: 'translateZ(0)', // Força aceleração de hardware
@@ -470,7 +466,7 @@ export const ToolbarGalleryView = ({
                     aria-label="Fechar tooltip"
                     type="button"
                   >
-                    <X size={14} strokeWidth={2.5} />
+                    <X size={16} strokeWidth={2.5} />
                   </button>
                 </div>
                 <p className="text-[10px] leading-tight font-medium break-words hyphens-auto">
@@ -499,18 +495,18 @@ export const ToolbarGalleryView = ({
           >
             <div className="relative w-12 h-12">
               {showQualityWarning && (
-                <div className="absolute -inset-1 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
+                <div className="absolute -inset-1 rounded-full bg-[rgb(var(--pub-bar-cta-bg))] animate-ping opacity-80" />
               )}
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                   showQualityWarning
-                    ? 'bg-[#F3E5AB]'
+                    ? 'pub-bar-btn-cta'
                     : 'bg-slate-200 dark:bg-white/10 active:bg-slate-800 dark:active:bg-white/20'
                 }`}
               >
                 {isDownloading ? (
                   <Loader2
-                    className={`animate-spin ${showQualityWarning ? 'text-black' : 'text-black dark:text-white'}`}
+                    className={`animate-spin ${showQualityWarning ? '' : 'text-black dark:text-white'}`}
                     size={22}
                     strokeWidth={2.5}
                   />
@@ -518,9 +514,7 @@ export const ToolbarGalleryView = ({
                   <Download
                     size={22}
                     className={
-                      showQualityWarning
-                        ? 'text-black'
-                        : 'text-black dark:text-white'
+                      showQualityWarning ? '' : 'text-black dark:text-white'
                     }
                     strokeWidth={2.5}
                   />
@@ -583,19 +577,23 @@ export const ToolbarGalleryView = ({
               className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
             >
               <div
-                className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'bg-[#E67E70]' : 'bg-white/5 group-hover:bg-[#E67E70]'}`}
+                className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isFavorited ? 'pub-bar-btn-cta' : 'bg-white/5 group-hover:bg-[rgb(var(--pub-bar-bg))]'}`}
               >
                 <Heart
-                  fill={isFavorited ? 'white' : 'none'}
+                  fill={isFavorited ? 'currentColor' : 'none'}
                   size={18}
-                  className="text-white"
+                  className={
+                    isFavorited
+                      ? 'text-red-600'
+                      : 'text-white group-hover:text-[rgb(var(--pub-bar-icon))]'
+                  }
                 />
               </div>
               <div className={textContainerClass}>
-                <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+                <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mb-1 text-white">
                   Favoritar
                 </span>
-                <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+                <span className="text-[9px] md:text-[10px] opacity-80 text-white/70 whitespace-nowrap">
                   {isFavorited ? 'Salvo' : 'Salvar foto'}
                 </span>
               </div>
@@ -624,10 +622,10 @@ export const ToolbarGalleryView = ({
             <WhatsAppIcon className="text-white w-5 h-5" />
           </div>
           <div className={textContainerClass}>
-            <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+            <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mb-1 text-white">
               WhatsApp
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px] opacity-80 text-white/70 whitespace-nowrap">
               Compartilhar
             </span>
           </div>
@@ -643,18 +641,21 @@ export const ToolbarGalleryView = ({
           onMouseLeave={() => setActiveTooltip(null)}
           className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
         >
-          <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
+          <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[rgb(var(--pub-bar-bg))] transition-all">
             {copied ? (
-              <Check size={18} className="text-[#F3E5AB]" />
+              <Check size={18} className="pub-bar-accent" />
             ) : (
-              <LinkIcon size={18} className="text-white" />
+              <LinkIcon
+                size={18}
+                className="text-white group-hover:text-[rgb(var(--pub-bar-icon))]"
+              />
             )}
           </div>
           <div className={textContainerClass}>
-            <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+            <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mb-1 text-white">
               {copied ? 'Copiado' : 'Link'}
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px] opacity-80 text-white/70 whitespace-nowrap">
               Copiar URL
             </span>
           </div>
@@ -672,15 +673,15 @@ export const ToolbarGalleryView = ({
             className="flex items-center border-r border-white/10 pr-3 mx-1 shrink-0 group"
           >
             <div
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${isSlideshowActive ? 'pub-bar-control-active' : 'bg-white/5 text-white group-hover:bg-[rgb(var(--pub-bar-bg))] group-hover:text-[rgb(var(--pub-bar-icon))]'}`}
             >
               {isSlideshowActive ? <Pause size={18} /> : <Play size={18} />}
             </div>
             <div className={textContainerClass}>
-              <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+              <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mb-1 text-white">
                 {isSlideshowActive ? 'Pausar' : 'Slideshow'}
               </span>
-              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+              <span className="text-[9px] md:text-[10px] opacity-80 text-white/70 whitespace-nowrap">
                 {isSlideshowActive ? 'Parar' : 'Automático'}
               </span>
             </div>
@@ -705,15 +706,15 @@ export const ToolbarGalleryView = ({
           <div className="absolute top-full mt-4 right-[-10px] md:right-0 z-[1001] w-64 md:w-80 animate-in fade-in slide-in-from-top-4 duration-700">
             {/* 🎯 A Seta: Posicionada fixamente sob o centro do botão de download */}
             {/* No desktop, o botão tem 44px (w-11), então a seta deve estar a 22px da direita */}
-            <div className="absolute bottom-full right-[23px] md:right-[95px] border-[8px] border-transparent border-b-[#F3E5AB]" />
+            <div className="absolute bottom-full right-[23px] md:right-[95px] border-[8px] border-transparent border-b-[rgb(var(--pub-bar-cta-bg))]" />
 
-            <div className="bg-[#F3E5AB] shadow-2xl rounded-2xl p-4 border border-white/20 text-black">
+            <div className="pub-bar-btn-cta shadow-2xl rounded-2xl p-4 border pub-bar-drawer-border">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-[11px] uppercase tracking-tighter">
                   Alta Resolução Disponível
                 </span>
                 <X
-                  size={14}
+                  size={16}
                   className="opacity-40 hover:opacity-100 cursor-pointer"
                   onClick={() => {
                     setShowQualityWarning(false);
@@ -745,10 +746,10 @@ export const ToolbarGalleryView = ({
         >
           <div className="relative shrink-0">
             {showQualityWarning && isMobile && (
-              <div className="absolute inset-0 rounded-full bg-[#F3E5AB] animate-ping opacity-80" />
+              <div className="absolute inset-0 rounded-full bg-[rgb(var(--pub-bar-cta-bg))] animate-ping opacity-80" />
             )}
             <div
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${showQualityWarning && isMobile ? 'bg-[#F3E5AB] text-black' : 'bg-white/5 text-white group-hover:bg-white group-hover:text-black'}`}
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${showQualityWarning && isMobile ? 'pub-bar-btn-cta' : 'bg-white/5 text-white group-hover:bg-[rgb(var(--pub-bar-bg))] group-hover:text-[rgb(var(--pub-bar-icon))]'}`}
             >
               {isDownloading ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -758,10 +759,10 @@ export const ToolbarGalleryView = ({
             </div>
           </div>
           <div className={textContainerClass}>
-            <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+            <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mb-1 text-white">
               Download
             </span>
-            <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+            <span className="text-[9px] md:text-[10px] opacity-80 text-white/70 whitespace-nowrap">
               Original
             </span>
           </div>
@@ -787,24 +788,20 @@ export const ToolbarGalleryView = ({
             }}
           >
             <div
-              className={`${isMobile ? 'w-12 h-12' : 'w-9 h-9 md:w-11 md:h-11'} rounded-full flex items-center justify-center transition-all bg-white/5 text-white hover:bg-white/10`}
+              className={`${isMobile ? 'w-12 h-12' : 'w-9 h-9 md:w-11 md:h-11'} rounded-full flex items-center justify-center transition-all bg-white/5 text-white group-hover:bg-[rgb(var(--pub-bar-bg))] group-hover:text-[rgb(var(--pub-bar-icon))]`}
               style={{
                 // Garante área de toque mínima mesmo no mobile
                 minWidth: isMobile ? '48px' : undefined,
                 minHeight: isMobile ? '48px' : undefined,
               }}
             >
-              <X
-                size={isMobile ? 22 : 18}
-                strokeWidth={isMobile ? 2.5 : 2}
-                className="text-white"
-              />
+              <X size={isMobile ? 22 : 18} strokeWidth={isMobile ? 2.5 : 2} />
             </div>
             <div className={textContainerClass}>
-              <span className="text-[10px] md:text-[11px]  font-semibold uppercase tracking-wider mb-1 text-white">
+              <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mb-1 text-white">
                 Fechar
               </span>
-              <span className="text-[9px] md:text-[10px]  opacity-80 text-white/70 whitespace-nowrap">
+              <span className="text-[9px] md:text-[10px] opacity-80 text-white/70 whitespace-nowrap">
                 Sair
               </span>
             </div>

@@ -60,7 +60,7 @@ export default function GridBasePage({
                   onClick={onBack}
                   className="btn-secondary-petroleum px-6 flex items-center gap-2 text-[10px] font-semibold tracking-luxury-widest"
                 >
-                  <ArrowLeft size={14} /> VOLTAR
+                  <ArrowLeft size={16} /> VOLTAR
                 </button>
               ))}
           </div>

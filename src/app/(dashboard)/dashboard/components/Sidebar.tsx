@@ -1,24 +1,32 @@
+import Link from 'next/link';
 import {
   Plus,
   ChevronLeft,
   ChevronRight,
   Lock,
-  SegmentIcon,
-  ArrowLeft,
+  TrendingUp,
+  AlertCircle,
+  CreditCard,
 } from 'lucide-react';
 import type { ViewType } from '../hooks/useDashboardFilters';
+import type {
+  PendingPaymentRequest,
+  ScheduledCancellationInfo,
+} from '../types';
 import type { Profile } from '@/core/types/profile';
 import VersionInfo from '@/components/dashboard/VersionInfo';
 import SidebarGalerias from './SidebarGalerias';
 import SidebarStorage from './SidebarStorage';
 import SidebarGoogleDrive from './SidebarGoogleDrive';
 import SidebarAjuda from './SidebarAjuda';
-import SidebarAdmin from './SidebarAdmin';
 import { useSidebar } from '@/components/providers/SidebarProvider';
 import { usePlan } from '@/core/context/PlanContext';
+import { useNavigation } from '@/components/providers/NavigationProvider';
 import { useState } from 'react';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import { UpgradeSheet } from '@/components/ui/Upgradesheet';
 import { useSegment } from '@/hooks/useSegment';
+import { ManagePaymentSheet } from '@/components/ui/Assinatura/ManagePaymentSheet';
 
 interface SidebarProps {
   counts: { active: number; archived: number; trash: number };
@@ -27,10 +35,40 @@ interface SidebarProps {
   setCardsToShow: (count: number) => void;
   galeriasCount: number;
   photographer: Profile | null;
+  profile: Profile | null;
   handleGoogleLogin: (force: boolean) => void;
   handleNovaGaleria: () => void;
   isRedirecting: boolean;
-  onOpenAdminModal: () => void;
+  totalPhotosUsed: number;
+  latestPendingRequest?: PendingPaymentRequest | null;
+  scheduledCancellation?: ScheduledCancellationInfo | null;
+}
+
+function getRelativeDueText(
+  dueDateRaw: string | null | undefined,
+): string | null {
+  if (!dueDateRaw) return null;
+  const due = new Date(dueDateRaw);
+  if (Number.isNaN(due.getTime())) return null;
+
+  const today = new Date();
+  const dueUtc = Date.UTC(
+    due.getUTCFullYear(),
+    due.getUTCMonth(),
+    due.getUTCDate(),
+  );
+  const todayUtc = Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate(),
+  );
+  const diffDays = Math.round((dueUtc - todayUtc) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'vence hoje';
+  if (diffDays === 1) return 'vence amanhã';
+  if (diffDays > 1) return `vence em ${diffDays} dias`;
+  if (diffDays === -1) return 'vencido há 1 dia';
+  return `vencido há ${Math.abs(diffDays)} dias`;
 }
 
 export default function Sidebar({
@@ -40,19 +78,65 @@ export default function Sidebar({
   setCardsToShow,
   galeriasCount,
   photographer,
+  profile,
   handleGoogleLogin,
   handleNovaGaleria,
   isRedirecting,
-  onOpenAdminModal,
+  totalPhotosUsed,
+  latestPendingRequest,
+  scheduledCancellation,
 }: SidebarProps) {
   const { SegmentIcon } = useSegment();
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
+  const { navigate } = useNavigation();
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
   const { permissions, canAddMore, planKey } = usePlan(); // 🛡️ Permissões
   const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
-  // 🛡️ Validação de Limite de Galerias
-  const canCreateMore = canAddMore('maxGalleries', galeriasCount);
+  const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false);
+  // 🛡️ Validação: cota de galerias e cota de fotos (pool)
+  const canCreateByGalleries = canAddMore('maxGalleries', galeriasCount);
+  const remainingPhotoCredits = Math.max(
+    0,
+    permissions.photoCredits - totalPhotosUsed,
+  );
+  const canCreateByPhotos = remainingPhotoCredits > 0;
+  const canCreateMore = canCreateByGalleries && canCreateByPhotos;
+  const isNovaGaleriaDisabled = isRedirecting || !canCreateMore;
+  const hasPendingPayment = latestPendingRequest != null;
+  const pendingBillingType = String(
+    latestPendingRequest?.billing_type ?? '',
+  ).toUpperCase();
+  const pendingStatus = String(
+    latestPendingRequest?.status ?? '',
+  ).toLowerCase();
+  const pendingRawStatus = String(
+    latestPendingRequest?.asaas_raw_status ?? '',
+  ).toUpperCase();
+  const hasCriticalCardCapture =
+    pendingStatus === 'rejected' && pendingBillingType === 'CREDIT_CARD';
+  const hasOverdueWarning =
+    !hasCriticalCardCapture &&
+    (pendingBillingType === 'PIX' || pendingBillingType === 'BOLETO') &&
+    (pendingStatus === 'rejected' || pendingRawStatus === 'OVERDUE');
+  const pendingAmount = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(Math.max(0, latestPendingRequest?.amount_final ?? 0));
+  const pendingDueDate = latestPendingRequest?.due_date
+    ? getRelativeDueText(latestPendingRequest.due_date)
+    : null;
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [pixRequestId, setPixRequestId] = useState<string | null>(null);
+  const [showManagePayment, setShowManagePayment] = useState(false);
+  const scheduledCancellationDate = scheduledCancellation?.access_ends_at
+    ? new Date(scheduledCancellation.access_ends_at).toLocaleDateString(
+        'pt-BR',
+        {
+          timeZone: 'UTC',
+        },
+      )
+    : null;
   return (
     <>
       {/* Overlay para Mobile */}
@@ -79,51 +163,52 @@ export default function Sidebar({
         )}
 
         {/* Botão Nova Galeria */}
-        <div className="px-3 pt-3">
+        <div className="px-5 pt-3">
           <button
             onClick={() => {
+              if (isNovaGaleriaDisabled) return;
               if (canCreateMore) {
                 handleNovaGaleria();
                 if (isMobile) toggleSidebar();
               } else {
                 setUpsellFeature('Limite de Galerias');
-                // Adicione aqui a chamada para abrir o modal de upgrade se necessário
               }
             }}
-            disabled={isRedirecting}
-            className={`flex items-center justify-center transition-all duration-300 rounded-luxury border h-12 w-full gap-2 group shadow-lg
+            disabled={isNovaGaleriaDisabled}
+            className={`flex items-center justify-center transition-all duration-300 rounded-md border h-10 px-3 gap-2 group shadow-lg
+      ${isSidebarCollapsed ? 'w-10' : 'w-full'}
       ${
         !canCreateMore
-          ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-pointer hover:border-champagne/60'
-          : 'bg-champagne text-black border-champagne hover:bg-white'
+          ? 'bg-champagne/80 border-champagne/20 text-black/80 cursor-not-allowed hover:border-champagne/20'
+          : 'bg-champagne text-black border-champagne hover:bg-white cursor-pointer'
       }
-      ${isRedirecting ? 'opacity-70 cursor-not-allowed' : ''}`}
+      ${isNovaGaleriaDisabled ? 'opacity-70' : ''}`}
             title={
-              !canCreateMore
-                ? `Limite de ${permissions.maxGalleries} galerias atingido. Clique para upgrade.`
-                : 'Criar nova galeria'
+              !canCreateByPhotos
+                ? 'Sem cota de fotos. Faça upgrade do seu plano para criar galerias.'
+                : !canCreateByGalleries
+                  ? `Limite de ${permissions.maxGalleries} galerias atingido. Faça upgrade do seu plano.`
+                  : 'Criar nova galeria'
             }
           >
-            <div className="relative flex items-center justify-center">
-              {/* Ícone principal Plus com opacidade condicional */}
+            <div className="relative flex items-center justify-center w-5 h-5 shrink-0">
               <Plus
-                size={20}
+                size={16}
                 className={`transition-all ${
                   isRedirecting ? 'animate-spin' : 'group-hover:rotate-90'
                 } ${!canCreateMore ? 'opacity-0' : ''}`}
+                strokeWidth={2.5}
               />
-
-              {/* Cadeado posicionado como badge flutuante quando bloqueado */}
               {!canCreateMore && !isRedirecting && (
                 <Lock
-                  size={12}
-                  className="absolute top-1 text-black animate-in zoom-in duration-300"
+                  size={16}
+                  className="absolute inset-0 m-auto text-black animate-in zoom-in duration-300"
+                  strokeWidth={2.5}
                 />
               )}
             </div>
-
-            {(!isSidebarCollapsed || isMobile) && (
-              <span className="text-editorial-label font-semibold">
+            {!isSidebarCollapsed && (
+              <span className="text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap">
                 {isRedirecting ? 'Iniciando...' : 'Nova Galeria'}
               </span>
             )}
@@ -132,19 +217,6 @@ export default function Sidebar({
 
         {/* Navegação Principal */}
         <nav className="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar p-2">
-          {/* Badge do Plano Atual */}
-          {(!isSidebarCollapsed || isMobile) && (
-            <div className="px-2 py-1 mb-2">
-              <div className="flex items-center justify-between px-3 py-2 rounded-luxury bg-white/5 border border-white/5">
-                <span className="text-[9px] font-bold uppercase tracking-luxury-widest text-white/90">
-                  Plano
-                </span>
-                <span className="text-[9px] font-semibold uppercase tracking-luxury-widest text-champagne">
-                  {planKey}
-                </span>
-              </div>
-            </div>
-          )}
           <SidebarGalerias
             isSidebarCollapsed={isSidebarCollapsed}
             counts={counts}
@@ -156,7 +228,154 @@ export default function Sidebar({
           <SidebarStorage
             isSidebarCollapsed={isSidebarCollapsed}
             galeriasCount={galeriasCount}
+            totalPhotosUsed={totalPhotosUsed} // vem do hook/query que você já tem
           />
+          {/* Badge do Plano Atual */}
+          {(!isSidebarCollapsed || isMobile) && (
+            <div className="px-2 py-1 mb-2">
+              <div className="flex flex-col gap-2 px-2 py-2 rounded-md bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between gap-2">
+                  <Link
+                    href="/dashboard/assinatura"
+                    onClick={(e) => {
+                      // Usa loading global de navegação em clique normal.
+                      if (
+                        e.metaKey ||
+                        e.ctrlKey ||
+                        e.shiftKey ||
+                        e.altKey ||
+                        e.button !== 0
+                      ) {
+                        return;
+                      }
+                      e.preventDefault();
+                      navigate(
+                        '/dashboard/assinatura',
+                        'Abrindo assinatura...',
+                      );
+                    }}
+                    className="flex items-center gap-1 min-w-0 hover:opacity-90 transition-opacity group flex-1"
+                    title="Gerenciar minha assinatura"
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-luxury-wide text-white/90 shrink-0">
+                      Plano
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-luxury-wide text-champagne truncate">
+                      {planKey}
+                    </span>
+                    <ChevronRight
+                      size={16}
+                      strokeWidth={2.5}
+                      className="shrink-0 text-white group-hover:text-white transition-colors"
+                    />
+                  </Link>
+                  {planKey !== 'PREMIUM' && (
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeSheetOpen(true)}
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 
+                      rounded-md bg-champagne/20 border 
+                      border-champagne/30 text-champagne hover:bg-champagne/30 text-[8px] 
+                      font-medium uppercase tracking-widest transition-colors"
+                      title="Fazer upgrade de plano"
+                    >
+                      <TrendingUp size={10} />
+                      Migrar
+                    </button>
+                  )}
+                </div>
+                {profile?.is_exempt && (
+                  <div className="flex">
+                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-semibold text-emerald-300">
+                      Assinatura Cortesia
+                    </span>
+                  </div>
+                )}
+                {scheduledCancellationDate && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-1">
+                    <p className="text-[9px] font-semibold uppercase tracking-wide text-amber-200">
+                      Cancelamento agendado
+                    </p>
+                    <p className="text-[10px] text-amber-100/90">
+                      Acesso até {scheduledCancellationDate}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {hasPendingPayment && (!isSidebarCollapsed || isMobile) && (
+            <div className="px-2 mb-2">
+              <div
+                className={`rounded-md px-2 py-2 ${
+                  hasCriticalCardCapture
+                    ? 'border border-red-500/50 bg-red-500/10'
+                    : 'border border-amber-500/20 bg-amber-500/10'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <AlertCircle
+                    size={16}
+                    className={`shrink-0 mt-0.5 ${
+                      hasCriticalCardCapture ? 'text-red-300' : 'text-amber-300'
+                    }`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`text-[10px] font-semibold uppercase tracking-wide ${
+                        hasCriticalCardCapture
+                          ? 'text-red-200'
+                          : 'text-amber-200'
+                      }`}
+                    >
+                      {hasCriticalCardCapture
+                        ? 'Atenção crítica'
+                        : 'Pagamento Pendente'}
+                    </p>
+                    {hasCriticalCardCapture ? (
+                      <p className="text-[10px] text-red-100/90 mt-0.5 uppercase">
+                        Problema com seu cartão. Atualize seus dados para evitar
+                        o downgrade para o plano FREE.
+                      </p>
+                    ) : hasOverdueWarning ? (
+                      <p className="text-[10px] text-amber-100/90 mt-0.5 uppercase">
+                        Fatura vencida. Regularize para evitar o downgrade.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-amber-100/90 mt-0.5 uppercase">
+                        {pendingAmount}
+                        {pendingDueDate ? ` • ${pendingDueDate}` : ''}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowManagePayment(true)}
+                      className={`mt-2 inline-flex h-7 items-center rounded-md px-2.5 text-[10px] font-semibold uppercase tracking-wide text-black transition-colors ${
+                        hasCriticalCardCapture
+                          ? 'bg-red-400 hover:bg-red-300'
+                          : 'bg-amber-500 hover:bg-amber-400'
+                      }`}
+                    >
+                      {hasCriticalCardCapture
+                        ? 'Atualizar pagamento'
+                        : 'Pagar agora'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {hasPendingPayment && isSidebarCollapsed && !isMobile && (
+            <button
+              type="button"
+              onClick={() => setShowManagePayment(true)}
+              className="mx-auto mb-2 relative flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200 hover:bg-white/10 transition-colors"
+              title="Pagamento pendente — gerenciar pagamento"
+            >
+              <CreditCard size={16} />
+              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+            </button>
+          )}
 
           <SidebarGoogleDrive
             isSidebarCollapsed={isSidebarCollapsed}
@@ -165,12 +384,6 @@ export default function Sidebar({
           />
 
           <SidebarAjuda isSidebarCollapsed={isSidebarCollapsed} />
-
-          <SidebarAdmin
-            isSidebarCollapsed={isSidebarCollapsed}
-            photographer={photographer}
-            onOpenAdminModal={onOpenAdminModal}
-          />
         </nav>
 
         {/* Rodapé: Versão e Toggle */}
@@ -182,7 +395,7 @@ export default function Sidebar({
 
           <button
             onClick={toggleSidebar}
-            className="!px-1 !py-1 flex absolute -right-3 top-20 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-champagne transition-colors"
+            className="!px-1 !py-1 flex absolute -right-3 top-10 bg-champagne border border-white/10 rounded-full p-1 shadow-xl hover:bg-slate-700 z-10 text-petroleum/70 hover:text-champagne transition-colors"
             title={isSidebarCollapsed ? 'Expandir Menu' : 'Recolher Menu'}
           >
             {isSidebarCollapsed ? (
@@ -201,6 +414,60 @@ export default function Sidebar({
         featureName="Galerias Ativas"
         featureKey="maxGalleries"
         scenarioType="limit"
+      />
+
+      <UpgradeSheet
+        isOpen={upgradeSheetOpen}
+        onClose={() => setUpgradeSheetOpen(false)}
+        initialPlanKey={planKey === 'PRO' ? 'PREMIUM' : 'PRO'}
+      />
+      <ManagePaymentSheet
+        isOpen={showManagePayment}
+        onClose={() => setShowManagePayment(false)}
+        activeSubscriptionId={latestPendingRequest?.asaas_subscription_id ?? ''}
+        activeRequestId={latestPendingRequest?.id ?? undefined}
+        currentBillingType={
+          String(
+            latestPendingRequest?.billing_type ?? 'CREDIT_CARD',
+          ).toUpperCase() as any
+        }
+        hasRejectedInvoice={hasCriticalCardCapture}
+        activeRequestStatus={
+          hasCriticalCardCapture
+            ? 'rejected'
+            : hasOverdueWarning
+              ? 'overdue'
+              : 'pending'
+        }
+        amount={latestPendingRequest?.amount_final ?? 0}
+        dueDate={latestPendingRequest?.due_date ?? null}
+        existingInvoice={
+          latestPendingRequest
+            ? {
+                billingType: (latestPendingRequest.billing_type ?? null) as any,
+                paymentUrl: latestPendingRequest.payment_url ?? null,
+                dueDate: (latestPendingRequest as any).due_date ?? null,
+                amount: latestPendingRequest.amount_final ?? undefined,
+              }
+            : null
+        }
+        planName={
+          (latestPendingRequest?.plan_key_requested ?? planKey) === 'FREE'
+            ? 'Gratuito'
+            : (latestPendingRequest?.plan_key_requested ?? planKey) === 'PREMIUM'
+              ? 'Premium'
+              : (latestPendingRequest?.plan_key_requested ?? planKey) === 'PRO'
+                ? 'Pro'
+                : (latestPendingRequest?.plan_key_requested ?? planKey) === 'START'
+                  ? 'Start'
+                  : (latestPendingRequest?.plan_key_requested ?? planKey) === 'PLUS'
+                    ? 'Plus'
+                    : (latestPendingRequest?.plan_key_requested ?? planKey)
+        }
+        planPeriod={latestPendingRequest?.billing_period ?? 'monthly'}
+        onSuccess={(_newPaymentId) => {
+          if (typeof window !== 'undefined') window.location.reload();
+        }}
       />
     </>
   );

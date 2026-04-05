@@ -22,6 +22,7 @@
 //
 import { getDriveAccessTokenForUser } from '@/lib/google-auth';
 import { createSupabaseAdmin } from '@/lib/supabase.server';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 
 const WEBHOOK_URL = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/drive`;
 
@@ -76,8 +77,8 @@ export async function registerFolderWatch(
   }
 
   // 2️⃣ Cria novo watch na API do Google
-  const channelId = `gallery-${userId}-${folderId}-${Date.now()}`;
-  const expirationMs = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 dias (ms)
+  const channelId = `gallery-${userId}-${folderId}-${nowFn().getTime()}`;
+  const expirationMs = nowFn().getTime() + 7 * 24 * 60 * 60 * 1000; // 7 dias (ms)
 
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files/${folderId}/watch`,
@@ -115,7 +116,7 @@ export async function registerFolderWatch(
     channel_id: channelId,
     resource_id: data.resourceId ?? '',
     expiration: expirationMs,
-    updated_at: new Date().toISOString(),
+    updated_at: utcIsoFrom(nowFn()),
   };
 
   const { error: upsertError } = await supabaseAdmin
@@ -181,7 +182,7 @@ export async function stopFolderWatch(
  */
 export async function renewExpiringWatches() {
   const supabase = createSupabaseAdmin();
-  const now = Date.now();
+  const now = nowFn().getTime();
   const threshold = now + 24 * 60 * 60 * 1000; // Renova se expira em < 24h
 
   // Busca watches próximos de expirar

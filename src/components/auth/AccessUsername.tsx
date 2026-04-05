@@ -50,7 +50,7 @@ export default function AccessUsername({
           <div className="loading-luxury w-4 h-4 border-petroleum" />
         ) : (
           <>
-            <LogIn size={14} />
+            <LogIn size={16} />
             Acessar Espaço das Galerias
           </>
         )}

@@ -13,6 +13,7 @@ import {
   Cpu,
   Calendar,
   CalendarDays,
+  Users,
 } from 'lucide-react';
 import { getGaleriaLeads } from '@/core/services/galeria.service';
 import {
@@ -30,13 +31,17 @@ import {
   RelatorioSelectedGallery,
   RelatorioSearchInput,
 } from '@/components/ui/RelatorioBasePage';
-import { div } from 'framer-motion/client';
+import { PlanGateScreen } from '@/components/ui/PlanGateScreen';
 
 interface LeadReportViewProps {
   galeria: Galeria;
+  leadCount: number;
 }
 
-export default function LeadReportView({ galeria }: LeadReportViewProps) {
+export default function LeadReportView({
+  galeria,
+  leadCount,
+}: LeadReportViewProps) {
   const router = useRouter();
   const { permissions } = usePlan();
   const { canCaptureLeads } = permissions;
@@ -160,6 +165,48 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
   if (loading && canCaptureLeads)
     return <LoadingScreen message="Carregando cadastros de visitantes..." />;
 
+  // ← INSIRA AQUI
+  if (!canCaptureLeads) {
+    return (
+      <RelatorioBasePage
+        title={`Relatório - ${galeria.title}`}
+        onBack={() => router.back()}
+      >
+        <PlanGateScreen
+          feature="canCaptureLeads"
+          title="Cadastro de Visitantes"
+          description="Capture automaticamente nome, e-mail e WhatsApp de quem acessa suas galerias. Construa sua lista de clientes sem esforço e exporte quando quiser."
+          teasers={[
+            {
+              icon: Users,
+              label: 'Visitantes cadastrados',
+              value: leadCount,
+              hint: 'aguardando',
+            },
+            {
+              icon: Mail,
+              label: 'E-mails capturados',
+              value: '---',
+              hint: 'na sua galeria',
+            },
+            {
+              icon: Smartphone,
+              label: 'Via mobile',
+              value: '---',
+              hint: 'dos acessos',
+            },
+            {
+              icon: MapPin,
+              label: 'Com localização',
+              value: '---',
+              hint: 'identificados',
+            },
+          ]}
+        />
+      </RelatorioBasePage>
+    );
+  }
+
   return (
     <RelatorioBasePage
       title={`Relatório - ${galeria.title}`}
@@ -171,19 +218,19 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
             onClick={() => handleExport('csv')}
             className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <FileText size={14} /> CSV
+            <FileText size={16} /> CSV
           </button>
           <button
             onClick={() => handleExport('excel')}
             className="btn-secondary-petroleum px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <TableIcon size={14} /> EXCEL
+            <TableIcon size={16} /> EXCEL
           </button>
           <button
             onClick={() => handleExport('pdf')}
             className="btn-luxury-primary px-4 flex items-center gap-2 text-[12px] font-semibold"
           >
-            <FileDown size={14} /> PDF
+            <FileDown size={16} /> PDF
           </button>
         </div>
       }
@@ -193,7 +240,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
         <aside className="w-full lg:w-[320px] space-y-3 shrink-0">
           <div className="p-3 bg-slate-50/50 rounded-luxury border border-slate-200">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarDays size={14} className="text-gold" />
+              <CalendarDays size={16} className="text-gold" />
               <h3 className="text-[9px] font-semibold uppercase text-slate-500 tracking-tighter">
                 Período de Análise
               </h3>
@@ -218,7 +265,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
 
           <div className="p-3 bg-white rounded-luxury border border-slate-200">
             <div className="flex items-center gap-2 mb-3">
-              <Monitor size={14} className="text-gold" />
+              <Monitor size={16} className="text-gold" />
               <h3 className="text-[9px] font-semibold uppercase text-slate-500 tracking-tighter">
                 Dispositivo
               </h3>
@@ -263,7 +310,7 @@ export default function LeadReportView({ galeria }: LeadReportViewProps) {
 
           <div className="p-3 bg-white rounded-luxury border border-slate-200">
             <div className="flex items-center gap-2 mb-3">
-              <Cpu size={14} className="text-gold" />
+              <Cpu size={16} className="text-gold" />
               <h3 className="text-[9px] font-semibold uppercase text-slate-500 tracking-tighter">
                 Sistema Operacional
               </h3>

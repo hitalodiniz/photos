@@ -53,11 +53,7 @@ export default function FormPageBase({
     };
   }, []);
 
-  const defaultSubmitLabel = loading
-    ? 'Salvando...'
-    : isEdit
-      ? 'SALVAR ALTERAÇÕES'
-      : 'CRIAR';
+  const defaultSubmitLabel = loading ? 'Salvando...' : 'SALVAR';
 
   return (
     <div
@@ -68,10 +64,14 @@ export default function FormPageBase({
       <div ref={modalRef} className="relative w-full flex-1 flex flex-col">
         {/* FORM CONTENT */}
         <div className="flex-1">
-          <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10">
+          <div className="max-w-[1600px] mx-auto px-4 md:px-10">
             <form
               id={id}
-              onSubmit={onSubmit}
+              onSubmit={(e) => {
+                // Garante fluxo client-side; evita submit nativo/redirecionamento.
+                e.preventDefault();
+                onSubmit(e);
+              }}
               className="flex flex-col"
               onChange={onFormChange}
             >
@@ -97,7 +97,7 @@ export default function FormPageBase({
                       type="button"
                       onClick={onClose}
                       disabled={loading}
-                      className="btn-secondary-petroleum"
+                      className="btn-secondary-white"
                     >
                       CANCELAR
                     </button>
@@ -106,7 +106,7 @@ export default function FormPageBase({
                       form={id}
                       success={isSuccess}
                       disabled={loading}
-                      icon={<Save size={14} />}
+                      icon={<Save size={16} />}
                       className="px-6"
                       label={submitLabel || defaultSubmitLabel}
                     />

@@ -11,6 +11,7 @@ interface BulkActionsBarProps {
   currentView: ViewType;
   onBulkArchive: () => void;
   onBulkDelete: () => void;
+  onBulkPermanentDelete?: () => void;
   onBulkRestore: () => void;
   isUpdating: boolean;
   setIsBulkMode: (val: boolean) => void; // Adicione esta prop para controlar a saída
@@ -24,6 +25,7 @@ export default function BulkActionsBar({
   currentView,
   onBulkArchive,
   onBulkDelete,
+  onBulkPermanentDelete,
   onBulkRestore,
   isUpdating,
   setIsBulkMode,
@@ -79,7 +81,7 @@ export default function BulkActionsBar({
             className="p-1.5 rounded-full bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-all border border-white/10"
             title="Sair do modo seleção"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
 
           <div className="flex items-center gap-3 border-l border-white/10 pl-4">
@@ -96,36 +98,26 @@ export default function BulkActionsBar({
         </div>
 
         <div className="flex items-center gap-2">
-          {currentView === 'trash' ? (
+          {/* Ocultar ações de lote: Restaurar (trash) / Desarquivar (archived) */}
+          {currentView !== 'trash' && currentView !== 'archived' && (
             <button
-              onClick={onBulkRestore}
+              onClick={onBulkArchive}
               disabled={isUpdating}
-              className="px-3 py-1.5 text-editorial-label bg-white/10 text-white rounded-sm hover:bg-white/20 transition-colors disabled:opacity-50 flex items-center gap-1.5 border border-white/10"
+              className="px-3 py-1.5 text-editorial-label bg-gold text-black rounded-md hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              <Inbox size={14} />
-              Restaurar
+              <Archive size={16} />
+              Arquivar
             </button>
-          ) : (
-            <>
-              <button
-                onClick={onBulkArchive}
-                disabled={isUpdating}
-                className="px-3 py-1.5 text-editorial-label bg-gold text-black rounded-luxury hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <Archive size={14} />
-                {currentView === 'archived' ? 'Desarquivar' : 'Arquivar'}
-              </button>
-
-              <button
-                onClick={onBulkDelete}
-                disabled={isUpdating}
-                className="px-3 py-1.5 text-editorial-label bg-red-600 text-white rounded-luxury hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-red-900/20"
-              >
-                <Trash2 size={14} />
-                Mover para Lixeira
-              </button>
-            </>
           )}
+
+          <button
+            onClick={currentView === 'trash' ? onBulkPermanentDelete ?? onBulkDelete : onBulkDelete}
+            disabled={isUpdating}
+            className="px-3 py-1.5 text-editorial-label bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-red-900/20"
+          >
+            <Trash2 size={16} />
+            {currentView === 'trash' ? 'Excluir permanentemente' : 'Mover para Lixeira'}
+          </button>
         </div>
       </div>
     </>

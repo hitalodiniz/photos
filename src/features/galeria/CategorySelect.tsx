@@ -1,14 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { GALLERY_CATEGORIES } from '@/core/config/categories';
-import {
-  ChevronDown,
-  Loader2,
-  Tag,
-  Plus,
-  AlertCircle,
-  Lock,
-} from 'lucide-react';
+import { ChevronDown, Loader2, Tag, AlertCircle } from 'lucide-react';
 import { updateCustomCategories } from '@/core/services/profile.service';
 import BaseModal from '@/components/ui/BaseModal';
 import { usePlan } from '@/core/context/PlanContext';
@@ -20,14 +13,13 @@ export default function CategorySelect({
   onChange,
   initialCustomCategories = [],
 }) {
-  const { permissions } = usePlan();
+  // 🎯 FIX: planKey adicionado (antes só vinha permissions — permissions.plan não existe)
+  const { permissions, planKey } = usePlan();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [customCategories, setCustomCategories] = useState<string[]>(
     initialCustomCategories,
   );
   const [loading, setLoading] = useState(false);
-
-  // Estados para o Modal de Criação
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -45,11 +37,9 @@ export default function CategorySelect({
     setIsModalOpen(true);
     setNewCategoryName('');
     setErrorMessage('');
-    setIsModalOpen(true);
   };
 
   const handleSaveCategory = async () => {
-    //Proteção dupla no salvamento
     if (!permissions.canCustomCategories) return;
 
     const trimmedCat = newCategoryName.trim();
@@ -70,7 +60,6 @@ export default function CategorySelect({
 
     setLoading(true);
     const newList = [...customCategories, trimmedCat];
-
     const result = await updateCustomCategories(newList);
 
     if (result.success) {
@@ -84,22 +73,25 @@ export default function CategorySelect({
   };
 
   const modalFooter = (
-    <div className="flex gap-3 w-full">
+    <div className="flex gap-3">
       <button
         onClick={() => setIsModalOpen(false)}
-        className="btn-secondary-petroleum"
+        className="btn-secondary-white"
       >
         cancelar
       </button>
       <button
         onClick={handleSaveCategory}
         disabled={loading}
-        className="btn-luxury-primary"
+        className="btn-luxury-primary flex items-center justify-center gap-2"
       >
         {loading ? (
-          <Loader2 size={14} className="animate-spin" />
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            <span>Salvando...</span>
+          </>
         ) : (
-          'salvar categoria'
+          'Salvar Categoria'
         )}
       </button>
     </div>
@@ -119,10 +111,7 @@ export default function CategorySelect({
             }
           }}
           required
-          className="w-full pl-4 pr-10 bg-white border border-slate-200 rounded-luxury 
-                     text-petroleum/90 text-[13px] font-medium h-10
-                     focus:border-gold outline-none appearance-none cursor-pointer
-                     disabled:opacity-50 transition-all group-hover:border-petroleum/60"
+          className="w-full pl-4 pr-10 bg-white border border-slate-200 rounded-luxury text-petroleum/90 text-[13px] font-medium h-10 focus:border-gold outline-none appearance-none cursor-pointer disabled:opacity-50 transition-all group-hover:border-petroleum/60"
         >
           <option value="" disabled hidden>
             selecione a categoria
@@ -137,11 +126,9 @@ export default function CategorySelect({
               </option>
             ) : (
               <option disabled className="text-petroleum/30">
-                🔒 Nova categoria{' '}
-                {findNextPlanWithFeature(
-                  permissions.plan,
-                  'canCustomCategories',
-                )}
+                {/* 🎯 FIX: planKey em vez de permissions.plan (que não existe) */}
+                🔒 Nova categoria — disponível no{' '}
+                {findNextPlanWithFeature(planKey, 'canCustomCategories')}
               </option>
             )}
           </optgroup>
@@ -157,7 +144,6 @@ export default function CategorySelect({
               ))}
             </optgroup>
           )}
-
           <optgroup
             label="categorias padrão"
             className="text-petroleum font-semibold uppercase text-[10px]"
@@ -169,12 +155,15 @@ export default function CategorySelect({
             ))}
           </optgroup>
         </select>
+
         <UpgradeModal
           isOpen={isUpgradeModalOpen}
           onClose={() => setIsUpgradeModalOpen(false)}
           featureName="Categorias Personalizadas"
+          featureKey="canCustomCategories"
           scenarioType="feature"
         />
+
         <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-petroleum/60 group-hover:text-gold transition-colors">
           {loading ? (
             <Loader2 size={16} className="animate-spin" />
@@ -184,7 +173,6 @@ export default function CategorySelect({
         </div>
       </div>
 
-      {/* Modal Editorial para Nova Categoria */}
       <BaseModal
         isOpen={isModalOpen}
         onClose={() => !loading && setIsModalOpen(false)}
@@ -196,9 +184,7 @@ export default function CategorySelect({
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-luxury-widest text-petroleum/60">
-              nome da categoria
-            </label>
+            <label>nome da categoria</label>
             <input
               autoFocus
               type="text"
@@ -212,10 +198,9 @@ export default function CategorySelect({
               className="w-full bg-slate-50 border border-petroleum/20 rounded-luxury px-4 h-12 text-petroleum text-sm outline-none focus:border-gold transition-all"
             />
           </div>
-
           {errorMessage && (
             <div className="flex items-center gap-2 p-3 rounded-luxury bg-red-50 border border-red-100 animate-in fade-in slide-in-from-top-1">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <AlertCircle size={16} className="text-red-500 shrink-0" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-red-600">
                 {errorMessage}
               </p>

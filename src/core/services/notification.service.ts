@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { sendPushNotification } from '@/lib/web-push-admin';
+import { now as nowFn, utcIsoFrom } from '@/core/utils/data-helpers';
 import {
   createSupabaseAdmin,
   createSupabaseServerClient,
@@ -45,7 +46,7 @@ export async function markNotificationsAsRead(userId: string) {
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('tb_notifications')
-    .update({ read_at: new Date().toISOString() })
+    .update({ read_at: utcIsoFrom(nowFn()) })
     .eq('user_id', userId)
     .is('read_at', null); // Importante: só atualiza o que for nulo
 
@@ -56,7 +57,7 @@ export async function markNotificationsAsReadUnique(notificationId: string) {
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('tb_notifications')
-    .update({ read_at: new Date().toISOString() })
+    .update({ read_at: utcIsoFrom(nowFn()) })
     .eq('id', notificationId)
     .is('read_at', null); // Importante: só atualiza o que for nulo
 

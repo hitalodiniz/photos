@@ -40,14 +40,15 @@ import { useNavigation } from '@/components/providers/NavigationProvider';
 import { usePlan } from '@/core/context/PlanContext';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import React from 'react';
-
 import { useShare } from '@/hooks/useShare';
 import { saveGaleriaSelectionAction } from '@/core/services/galeria.service';
 import { ConfirmationModal, Toast } from '@/components/ui';
-import { div } from 'framer-motion/client';
+import { div, span } from 'framer-motion/client';
 import { handleError } from '@supabase/auth-js/dist/module/lib/fetch';
 import { createPortal } from 'react-dom';
 import { is } from 'date-fns/locale';
+import { PlanPermissions } from '@/core/config/plans';
+import { PlanGuard } from '@/components/auth/PlanGuard';
 
 interface GaleriaCardProps {
   galeria: Galeria;
@@ -67,6 +68,12 @@ interface GaleriaCardProps {
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
   onOpenTags?: (galeria: Galeria) => void;
+}
+
+// 🎯 FIX: Estado unificado com featureKey dinâmico (antes era sempre 'canCaptureLeads')
+interface UpsellState {
+  label: string;
+  featureKey: keyof PlanPermissions;
 }
 
 export default function GaleriaCard({
@@ -89,8 +96,9 @@ export default function GaleriaCard({
   onOpenTags,
 }: GaleriaCardProps) {
   const { permissions } = usePlan();
-  const [upsellFeature, setUpsellFeature] = useState<string | null>(null);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+  // 🎯 FIX: Um único estado tipado substitui upsellFeature + isUpgradeModalOpen
+  const [upsell, setUpsell] = useState<UpsellState | null>(null);
 
   const canViewLeads = permissions.canCaptureLeads;
   const { navigate, isNavigating } = useNavigation();
@@ -127,7 +135,6 @@ export default function GaleriaCard({
       const customTemplate =
         galeria.photographer?.message_templates?.card_share;
       let message: string;
-
       if (customTemplate && customTemplate.trim() !== '') {
         message = formatMessage(customTemplate, galeria, publicUrl);
       } else {
@@ -169,7 +176,7 @@ export default function GaleriaCard({
       galeria.has_contracting_client == null ||
       galeria.has_contracting_client === undefined
     )
-      return 'Disponibilização de fotos';
+      return 'Disponibilização de fotos e vídeos';
     else if (galeria.has_contracting_client === 'CT')
       return galeria.client_name;
     else return getGalleryTypeLabel(galeria.has_contracting_client);
@@ -246,27 +253,19 @@ export default function GaleriaCard({
     await onEdit(galeria);
   };
 
-  // 1. Inicialize o hook extraindo o shareToClient
   const { shareToClient } = useShare({
     galeria,
-    onSuccess: () => {
-      // Callback opcional (ex: registrar analytics de compartilhamento)
-    },
+    onSuccess: () => {},
   });
 
-  // 2. Refatore a função de clique
   const handleWhatsAppShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // O hook já busca internamente galeria.client_whatsapp e galeria.title
-    // Você pode passar uma URL customizada se links.url for diferente da atual
     shareToClient(links.url);
   };
 
   const handleOpenBIReport = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Você pode ajustar a rota conforme sua estrutura (ex: /dashboard/galerias/[id]/bi ou /stats)
     navigate(
       `/dashboard/galerias/${galeria.id}/stats`,
       'Gerando estatísticas da galeria...',
@@ -327,9 +326,6 @@ export default function GaleriaCard({
   const renderActionButtons = () => {
     if (currentView !== 'active') return null;
 
-    // 1. Reduzi a opacidade da borda para /10 ou /20 para suavizar
-    // 2. Voltei para rounded-luxury para manter a identidade do card
-    // 3. Ajustei o tamanho fixo (h-9 w-9) para garantir simetria total
     const btnBaseClass =
       'h-9 w-9 flex items-center justify-center text-petroleum transition-all rounded-luxury border border-petroleum/10 bg-white hover:bg-slate-50 hover:border-petroleum/30 disabled:opacity-50 shadow-sm';
 
@@ -350,19 +346,22 @@ export default function GaleriaCard({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            // 🎯 FIX: featureKey correto para o botão de Tags
             if (!permissions.canTagPhotos) {
-              setUpsellFeature('Organizador de Fotos');
-              setIsUpgradeModalOpen(true);
+              setUpsell({
+                label: 'Organizador de arquivos',
+                featureKey: 'canTagPhotos',
+              });
               return;
             }
             navigate(
               `/dashboard/galerias/${galeria.id}/tags`,
-              'Abrindo marcação de fotos...',
+              'Abrindo marcação de arquivos...',
             );
           }}
           disabled={isNavigating}
           className={btnBaseClass}
-          title="Marcação de Fotos"
+          title="Marcação de arquivos"
         >
           {isNavigating ? (
             <Loader2 size={16} className="animate-spin" />
@@ -370,39 +369,48 @@ export default function GaleriaCard({
             <Tag size={16} />
           )}
         </button>
-
+        <PlanGuard
+          feature="canCaptureLeads"
+          label="Relatório de Visitantes"
+          variant="tiny"
+        >
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // 🎯 FIX: featureKey correto para o botão de Leads
+                if (!canViewLeads) {
+                  setUpsell({
+                    label: 'Relatório de Visitantes',
+                    featureKey: 'canCaptureLeads',
+                  });
+                  return;
+                }
+                navigate(
+                  `/dashboard/galerias/${galeria.id}/leads`,
+                  'Gerando relatório de visitantes...',
+                );
+              }}
+              className={btnBaseClass}
+              disabled={
+                canViewLeads &&
+                (isNavigating ||
+                  (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
+              }
+            >
+              <Users size={16} />
+            </button>
+          </div>
+        </PlanGuard>
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (!canViewLeads) {
-              setUpsellFeature('Relatório de Visitantes');
-              setIsUpgradeModalOpen(true);
-              return;
-            }
-            navigate(
-              `/dashboard/galerias/${galeria.id}/leads`,
-              'Gerando relatório de visitantes...',
-            );
-          }}
-          className={btnBaseClass}
-          disabled={
-            canViewLeads &&
-            (isNavigating ||
-              (!galeria.leads_enabled && (galeria.leads_count ?? 0) <= 0))
-          }
-        >
-          {!canViewLeads ? (
-            <div className="relative">
-              <Users size={16} className="opacity-40" />
-              <Lock size={8} className="absolute -top-1 -right-1 text-gold" />
-            </div>
-          ) : (
-            <Users size={16} />
-          )}
-        </button>
 
-        <button
-          onClick={handleOpenBIReport}
+            handleOpenBIReport(e);
+          }}
           disabled={isNavigating}
           className={btnBaseClass}
           title="Estatísticas"
@@ -486,8 +494,8 @@ export default function GaleriaCard({
                       className="w-full px-4 py-2.5 text-[11px] font-medium text-left hover:bg-green-50 border-b border-slate-100 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <Eye size={13} className="text-green-600 shrink-0" />
-                      <span className="text-green-600 font-semibold">
-                        Ver Selecionadas
+                      <span className="text-green-600 font-medium">
+                        Ver Selecionados
                       </span>
                     </button>
                     {/* Lightroom */}
@@ -556,8 +564,6 @@ export default function GaleriaCard({
       </>
     );
   };
-
-  // --- RENDERS ---
 
   if (viewMode === 'list') {
     return (
@@ -645,6 +651,7 @@ export default function GaleriaCard({
                 <a
                   href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
                   target="_blank"
+                  onClick={(e) => e.stopPropagation()}
                   className="flex items-center gap-2 px-2.5 h-full hover:bg-white transition-all group/drive min-w-0"
                 >
                   <FolderOpen size={13} className="text-gold shrink-0" />
@@ -661,21 +668,26 @@ export default function GaleriaCard({
                     </span>
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onSync();
-                  }}
-                  className="flex items-center justify-center px-2 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
-                >
-                  <RefreshCw
-                    size={11}
-                    className={isUpdating ? 'animate-spin' : ''}
-                  />
-                </button>
+                {!(
+                  galeria.is_archived ||
+                  galeria.auto_archived ||
+                  galeria.is_deleted
+                ) && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSync();
+                    }}
+                    className="flex items-center justify-center px-2 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
+                  >
+                    <RefreshCw
+                      size={11}
+                      className={isUpdating ? 'animate-spin' : ''}
+                    />
+                  </button>
+                )}
               </div>
 
               {/* Badge de Fotos fora do input se quiser preencher o lado, ou manter dentro como acima */}
@@ -684,6 +696,18 @@ export default function GaleriaCard({
 
           {/* Bloco de Ações lateral */}
           <div className="flex items-center gap-3 pl-6 border-l border-slate-100 flex-shrink-0 self-center">
+            {/* 🎯 NOVO: Badge de Auto-arquivamento */}
+            {galeria.auto_archived && (
+              <div className="flex items-center gap-1.5 px-2.5 h-9 bg-amber-50 border border-amber-200 rounded-luxury">
+                <div className="relative flex items-center justify-center">
+                  <Calendar size={16} className="text-amber-600" />
+                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                </div>
+                <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-tight">
+                  Auto-arquivado - downgrade de plano
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               {renderActionButtons()}
             </div>
@@ -707,9 +731,19 @@ export default function GaleriaCard({
   return (
     <>
       <div
-        onClick={() =>
-          !isBulkMode && links.url && window.open(links.url, '_blank')
-        }
+        onClick={() => {
+          if (isBulkMode || !links.url) return;
+          console.log('[GaleriaCard] open public url', {
+            currentHost: window.location.host,
+            url: links.url,
+            galeriaSlug: galeria.slug,
+            photographer: {
+              username: galeria.photographer?.username,
+              use_subdomain: galeria.photographer?.use_subdomain,
+            },
+          });
+          window.open(links.url, '_blank');
+        }}
         className={`group relative flex flex-col overflow-hidden rounded-luxury border border-slate-200 bg-white transition-all w-full animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both hover:border-petroleum/70 ${isBulkMode ? 'cursor-default' : 'cursor-pointer'} ${isSelected && isBulkMode ? 'ring-2 ring-gold border-gold' : ''}`}
         style={{ animationDelay: `${index * 50}ms` }}
       >
@@ -726,25 +760,16 @@ export default function GaleriaCard({
                 e.stopPropagation();
                 onToggleSelect?.(galeria.id);
               }}
-              /* 🎯 O segredo do contraste: Invertemos as cores do fundo e do ícone */
-              className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md
-      ${
-        isSelected
-          ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20'
-          : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'
-      }`}
+              className={`absolute top-2 left-2 z-30 p-1.5 rounded-luxury border transition-all duration-300 backdrop-blur-md ${isSelected ? 'bg-champagne border-champagne shadow-lg shadow-champagne/20' : 'bg-petroleum/80 border-white/10 hover:bg-petroleum'}`}
             >
               {isSelected ? (
-                /* 🎯 Ícone Petroleum sobre fundo Gold: Contraste perfeito */
                 <CheckSquare
                   size={16}
                   strokeWidth={3}
-                  /* Forçamos fill="none" para evitar a mancha dourada */
                   fill="none"
                   className="text-petroleum"
                 />
               ) : (
-                /* 🎯 Ícone Discreto: Apenas contorno branco sobre fundo Petroleum */
                 <Square
                   size={16}
                   strokeWidth={2}
@@ -759,7 +784,6 @@ export default function GaleriaCard({
               <div className="loading-luxury-dark w-6 h-6" />
             </div>
           )}
-
           {imageUrl ? (
             <img
               ref={imgRef}
@@ -802,19 +826,19 @@ export default function GaleriaCard({
               <span
                 className={`
         flex items-center gap-1.5 px-2.5 py-1 
-        backdrop-blur-md rounded-full border 
-        text-[10px] font-semibold shadow-md transition-all
+        backdrop-blur-md rounded-full
+        text-[10px] shadow-md transition-all
         ${
           isSelectionComplete
-            ? 'bg-green-500/90 border-green-400/50 text-white'
-            : 'bg-amber-500/90 border-amber-400/50 text-white'
+            ? 'bg-champagne text-petroleum'
+            : 'bg-amber-500/70 text-white'
         }
       `}
               >
                 {isSelectionComplete ? (
                   <>
-                    <CheckCircle2 size={11} strokeWidth={3} />
-                    <span>Fotos selecionadas</span>
+                    <CheckCircle2 size={12} />
+                    <span className="font-medium">Arquivos selecionados</span>
                   </>
                 ) : (
                   <>
@@ -873,14 +897,14 @@ export default function GaleriaCard({
               <a
                 href={`https://drive.google.com/drive/folders/${galeria.drive_folder_id}`}
                 target="_blank"
+                onClick={(e) => e.stopPropagation()}
                 className="flex-1 flex items-center gap-2 px-3 h-full hover:bg-white transition-all group/drive min-w-0"
               >
-                <FolderOpen size={14} className="text-gold shrink-0" />
+                <FolderOpen size={16} className="text-gold shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-800 truncate uppercase tracking-tight">
                   Drive: {galeria.drive_folder_name || 'Pasta Principal'}
                 </span>
               </a>
-
               {galeria.photo_count > 0 && (
                 <div className="flex items-center gap-1.5 px-3 text-slate-500 border-l border-slate-200 h-full bg-slate-100/30">
                   <ImageIcon size={12} className="text-gold/80" />
@@ -889,21 +913,26 @@ export default function GaleriaCard({
                   </span>
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onSync();
-                }}
-                className="flex items-center justify-center px-3 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
-              >
-                <RefreshCw
-                  size={13}
-                  className={isUpdating ? 'animate-spin' : ''}
-                />
-              </button>
+              {!(
+                galeria.is_archived ||
+                galeria.auto_archived ||
+                galeria.is_deleted
+              ) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSync();
+                  }}
+                  className="flex items-center justify-center px-3 border-l border-slate-200 h-full hover:bg-white text-gold transition-all"
+                >
+                  <RefreshCw
+                    size={13}
+                    className={isUpdating ? 'animate-spin' : ''}
+                  />
+                </button>
+              )}
             </div>
           </div>
 
@@ -911,6 +940,18 @@ export default function GaleriaCard({
           <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto w-full">
             <div className="flex flex-wrap items-center gap-1.5">
               {renderActionButtons()}
+              {/* 🎯 NOVO: Badge de Auto-arquivamento */}
+              {galeria.auto_archived && (
+                <div className="flex items-center gap-1.5 px-2.5 h-9 bg-amber-50 border border-amber-200 rounded-luxury">
+                  <div className="relative flex items-center justify-center">
+                    <Calendar size={16} className="text-amber-600" />
+                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-tight">
+                    Auto-arquivado - downgrade de plano
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end min-w-[32px] ml-auto">
               <GaleriaContextMenu
@@ -932,7 +973,7 @@ export default function GaleriaCard({
         isOpen={isClearModalOpen}
         onClose={() => setIsClearModalOpen(false)}
         title="Limpar Seleção"
-        message="Deseja realmente remover todas as fotos selecionadas desta galeria? Esta ação não pode ser desfeita."
+        message="Deseja realmente remover todos os arquivos selecionados desta galeria? Esta ação não pode ser desfeita."
         confirmText="Sim, Limpar Tudo"
         variant="danger"
         onConfirm={async () => {
@@ -972,10 +1013,10 @@ export default function GaleriaCard({
       )}
 
       <UpgradeModal
-        isOpen={Boolean(isUpgradeModalOpen)}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        featureName={upsellFeature || 'Recurso Premium'}
-        featureKey="canCaptureLeads"
+        isOpen={!!upsell}
+        onClose={() => setUpsell(null)}
+        featureName={upsell?.label || ''}
+        featureKey={upsell?.featureKey}
         scenarioType="feature"
       />
     </>
